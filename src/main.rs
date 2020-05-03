@@ -41,14 +41,16 @@ fn main() {
 
     if args.flag_version {
         println!("socksfinder v{}", socksfinder::version());
-    } else if args.cmd_build {
-        println!("building index '{}'", args.arg_index);
-        unimplemented!();
-    } else if args.cmd_query {
-        println!("querying users on index '{}':", args.arg_index);
-        for user in &args.arg_user {
-            println!("\t{}", user);
+    } else {
+        let result = if args.cmd_build {
+            socksfinder::build(&mut std::io::stdin(), args.arg_index)
+        } else if args.cmd_query {
+            socksfinder::query(args.arg_index, &args.arg_user)
+        } else {
+            Ok(())
+        };
+        if result.is_err() {
+            std::process::exit(1);
         }
-        unimplemented!();
     }
 }
