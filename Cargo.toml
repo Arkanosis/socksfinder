@@ -1,13 +1,13 @@
 [package]
 name = "socksfinder"
-version = "0.4.0-dev"
+version = "0.0.1"
 description = "Search engine for sock puppets on Wikimedia projects"
 
 authors = ["Jérémie Roquet <jroquet@arkanosis.net>"]
 
-documentation = "https://github.com/Arkanosis/socskfinder"
-homepage = "https://github.com/Arkanosis/socskfinder"
-repository = "https://github.com/Arkanosis/socskfinder"
+documentation = "https://github.com/Arkanosis/socksfinder"
+homepage = "https://github.com/Arkanosis/socksfinder"
+repository = "https://github.com/Arkanosis/socksfinder"
 
 readme = "README.md"
 license = "ISC"

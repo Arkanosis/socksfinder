@@ -1,4 +1,4 @@
-# socksfinder [![License](https://img.shields.io/badge/license-ISC-blue.svg)](/LICENSE)
+# socksfinder [![](https://img.shields.io/crates/v/socksfinder.svg)](https://crates.io/crates/socksfinder) [![License](https://img.shields.io/badge/license-ISC-blue.svg)](/LICENSE) [![Build status](https://travis-ci.org/Arkanosis/socksfinder.svg?branch=master)](https://travis-ci.org/Arkanosis/socksfinder)
 
 **socksfinder** is a search engine for sock puppets on Wikimedia projects.
 

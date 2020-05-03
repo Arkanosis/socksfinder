@@ -91,7 +91,7 @@ dependencies = [
 
 [[package]]
 name = "socksfinder"
-version = "0.4.0-dev"
+version = "0.0.1"
 dependencies = [
  "docopt",
  "serde",
