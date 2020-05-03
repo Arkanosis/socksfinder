@@ -1,0 +1,23 @@
+[package]
+name = "socksfinder"
+version = "0.4.0-dev"
+description = "Search engine for sock puppets on Wikimedia projects"
+
+authors = ["Jérémie Roquet <jroquet@arkanosis.net>"]
+
+documentation = "https://github.com/Arkanosis/socskfinder"
+homepage = "https://github.com/Arkanosis/socskfinder"
+repository = "https://github.com/Arkanosis/socskfinder"
+
+readme = "README.md"
+license = "ISC"
+
+keywords = ["sock", "puppet", "sockpuppet", "wikimedia", "wikipedia"]
+categories = ["command-line-utilities"]
+
+edition = "2018"
+
+[dependencies]
+docopt = "1.1"
+serde = "1.0"
+serde_derive = "1.0"
