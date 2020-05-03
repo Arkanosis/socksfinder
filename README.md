@@ -5,16 +5,17 @@
 ## Usage
 
 ```
-Usage: socksfinder build
-       socksfinder query <user>...
+Usage: socksfinder build <index>
+       socksfinder query <index> <user>...
        socksfinder -h | --help
        socksfinder --version
 
 Commands:
-    build        Build an index from the latest dump.
+    build        Build an index from a MediaWiki XML dump (read on the standard input).
     query        Search pages modified by several users in the index.
 
 Arguments:
+    index        Index built from a MediaWiki dump.
     user         User which has modified pages to look for.
 
 Options:
