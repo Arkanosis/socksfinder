@@ -1,6 +1,6 @@
 [package]
 name = "socksfinder"
-version = "0.0.1"
+version = "0.4.0-dev"
 description = "Search engine for sock puppets on Wikimedia projects"
 
 authors = ["Jérémie Roquet <jroquet@arkanosis.net>"]

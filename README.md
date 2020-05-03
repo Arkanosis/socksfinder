@@ -27,6 +27,22 @@ Options:
 
 Run `cargo build --release` in your working copy.
 
+## Examples
+
+### Building an index from the last dump of the French Wikipedia
+
+```sh
+curl -s "https://dumps.wikimedia.org/frwiki/latest/frwiki-latest-stub-meta-history.xml.gz" |
+    gunzip |
+    socksfinder build frwiki-latest.idx
+```
+
+### Searching for pages modified by at least two editors from a list
+
+```sh
+socksfinder query frwiki-latest.idx Arkanosis Arktest Arkbot
+```
+
 ## Contributing and reporting bugs
 
 Contributions are welcome through [GitHub pull requests](https://github.com/Arkanosis/socksfinder/pulls).
