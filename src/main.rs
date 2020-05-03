@@ -1,4 +1,8 @@
+use std::io::BufWriter;
+
 use serde_derive::Deserialize;
+
+use std::fs::File;
 
 const USAGE: &str = "
 Usage: socksfinder build <index>
@@ -43,7 +47,12 @@ fn main() {
         println!("socksfinder v{}", socksfinder::version());
     } else {
         let result = if args.cmd_build {
-            socksfinder::build(&mut std::io::stdin(), args.arg_index)
+            let output = File::create(&args.arg_index).unwrap_or_else(|cause| {
+                println!("socksfinder: can't open index: {}: {}", &args.arg_index, &cause);
+                std::process::exit(1);
+            });
+            let mut buffered_output = BufWriter::new(output);
+            socksfinder::build(&mut std::io::stdin().lock(), &mut buffered_output)
         } else if args.cmd_query {
             socksfinder::query(args.arg_index, &args.arg_user)
         } else {
