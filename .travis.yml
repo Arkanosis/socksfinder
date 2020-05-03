@@ -1,0 +1,5 @@
+language: rust
+rust: 1.43.0
+
+notifications:
+  email: jroquet@arkanosis.net
