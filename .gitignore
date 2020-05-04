@@ -1,3 +1,5 @@
 target
 *.bak
 *.idx
+*.idx.gz
+*.org
