@@ -1,9 +1,13 @@
 use byteorder::WriteBytesExt;
 
+use fst::MapBuilder;
+
 use quick_xml::{
     Reader,
     events::Event,
 };
+
+use std::collections::BTreeMap;
 
 use std::io::{
     BufRead,
@@ -16,14 +20,23 @@ enum Tag {
     Other,
 }
 
+const SF_IDENTIFIER: [u8; 2] = [0x53, 0x46];
+const SF_VERSION: u16 = 0;
+
 pub fn version() -> &'static str {
     return option_env!("CARGO_PKG_VERSION").unwrap_or("unknown");
 }
 
 pub fn build(reader: &mut dyn BufRead, writer: &mut dyn Write) -> Result<(), ()> {
+    writer.write_all(&SF_IDENTIFIER).unwrap();
+    writer.write_u16::<byteorder::LittleEndian>(SF_VERSION).unwrap();
+
+    let mut current_offset = 0u32;
+    let mut user_page_offsets = BTreeMap::new();
     let mut xml_reader = Reader::from_reader(reader);
     let mut buffer = Vec::new();
     let mut current_tag = Tag::Other;
+    let mut previous_page_length = 0usize;
     loop {
         match xml_reader.read_event(&mut buffer) {
             Ok(Event::Start(ref event)) => {
@@ -34,23 +47,34 @@ pub fn build(reader: &mut dyn BufRead, writer: &mut dyn Write) -> Result<(), ()>
                 }
             },
             Ok(Event::End(_)) => current_tag = Tag::Other,
-            Ok(Event::Text(event)) => {
+            Ok(Event::Text(ref event)) => {
                 match current_tag {
                     Tag::Title => {
-                        print!("page: '{}'\n", event.unescape_and_decode(&xml_reader).unwrap());
                         match event.unescaped() {
                             Ok(ref buffer) => {
-                                // TODO keep previous offset for index
+                                current_offset += previous_page_length as u32;
                                 writer.write_all(buffer).unwrap();
                                 writer.write_u8(0).unwrap();
+                                previous_page_length = buffer.len() + 1;
                             }
                             Err(_) => (), // ignore encoding error in the dump
                         }
                     }
                     Tag::UserName => {
-                        print!("\tuser: '{}'\n", event.unescape_and_decode(&xml_reader).unwrap());
-                        // TODO add user to map if not present, with an empty u32 list
-                        // TODO add previous page name offset to user list
+                        match event.unescaped() {
+                            Ok(ref buffer) => {
+                                let page_offsets = user_page_offsets.entry(buffer.to_vec()).or_insert(Vec::new());
+                                match page_offsets.last() {
+                                    None => page_offsets.push(current_offset),
+                                    Some(last_offset) => {
+                                        if current_offset != *last_offset {
+                                            page_offsets.push(current_offset);
+                                        }
+                                    }
+                                }
+                            },
+                            Err(_) => (), // ignore encoding error in the dump
+                        }
                     },
                     Tag::Other => (),
                 }
@@ -61,13 +85,23 @@ pub fn build(reader: &mut dyn BufRead, writer: &mut dyn Write) -> Result<(), ()>
         }
         buffer.clear();
     }
-    // TODO for each user (alphabetically)
-    // TODO   keep previous offset for index
-    // TODO   write page offsets list length
-    // TODO   write page offsets list
-    // TODO keep previous offset for header
-    // TODO write username -> user offset mapping as FST
-    // TODO write FST offset as u32
+    current_offset += previous_page_length as u32;
+    for page_offsets in user_page_offsets.values_mut() {
+        writer.write_u32::<byteorder::LittleEndian>(page_offsets.len() as u32).unwrap();
+        for page_offset in page_offsets.iter() {
+            writer.write_u32::<byteorder::LittleEndian>(*page_offset).unwrap();
+        }
+        page_offsets[0] = current_offset;
+        current_offset += (page_offsets.len() as u32 + 1) * 4;
+        page_offsets.truncate(1);
+    }
+    let fst_offset = current_offset;
+    let mut fst_builder = MapBuilder::new(writer).unwrap();
+    for (user, page_offsets) in user_page_offsets {
+        fst_builder.insert(user, page_offsets[0].into()).unwrap();
+    }
+    let writer = fst_builder.into_inner().unwrap();
+    writer.write_u32::<byteorder::LittleEndian>(fst_offset).unwrap();
     Ok(())
 }
 

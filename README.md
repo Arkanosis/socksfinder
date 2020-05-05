@@ -31,11 +31,19 @@ Run `cargo build --release` in your working copy.
 
 ### Building an index from the last dump of the French Wikipedia
 
+Building an index can take quite a while and eat a significant amount of memory
+(depending on the size of the dump). For the French Wikipedia, it takes about
+one hour with a fast internet access, and consumes about 500 MiB of RAM.
+
 ```sh
 curl -s "https://dumps.wikimedia.org/frwiki/latest/frwiki-latest-stub-meta-history.xml.gz" |
     gunzip |
     socksfinder build frwiki-latest.idx
 ```
+
+This only needs to be done once, though, and the resulting index can be
+redistributed to other users who don't have a fast enough internet access or
+a powerful enough computer.
 
 ### Searching for pages modified by at least two editors from a list
 
