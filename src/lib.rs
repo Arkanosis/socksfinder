@@ -1,4 +1,7 @@
-use byteorder::WriteBytesExt;
+use byteorder::{
+    ReadBytesExt,
+    WriteBytesExt,
+};
 
 use fst::MapBuilder;
 
@@ -20,7 +23,8 @@ enum Tag {
     Other,
 }
 
-const SF_IDENTIFIER: [u8; 2] = [0x53, 0x46];
+const SF_IDENTIFIER_LENGTH: usize = 2;
+const SF_IDENTIFIER: [u8; SF_IDENTIFIER_LENGTH] = [0x53, 0x46];
 const SF_VERSION: u16 = 0;
 
 pub fn version() -> &'static str {
@@ -79,7 +83,10 @@ pub fn build(reader: &mut dyn BufRead, writer: &mut dyn Write) -> Result<(), ()>
                     Tag::Other => (),
                 }
             },
-            Err(error) => panic!("XML parsing error at position {}: {:?}", xml_reader.buffer_position(), error),
+            Err(error) => {
+                eprintln!("socksfinder: XML parsing error at position {}: {:?}", xml_reader.buffer_position(), error);
+                break;
+            },
             Ok(Event::Eof) => break,
             _ => (),
         }
@@ -105,9 +112,33 @@ pub fn build(reader: &mut dyn BufRead, writer: &mut dyn Write) -> Result<(), ()>
     Ok(())
 }
 
-pub fn query(index: String, users: &Vec<String>) -> Result<(), ()> {
-    // TODO check magic number
-    // TODO check version number
+pub fn query(index: &mut dyn BufRead, users: &Vec<String>) -> Result<(), ()> {
+    let mut identifier_bytes = [0; SF_IDENTIFIER_LENGTH];
+    match index.read(&mut identifier_bytes) {
+        Ok(length) => {
+            if length != SF_IDENTIFIER_LENGTH ||
+               identifier_bytes != SF_IDENTIFIER {
+                   eprintln!("socksfinder: not a socksfinder index");
+                   return Err(())
+            }
+        },
+        Err(_) => {
+            eprintln!("socksfinder: not a socksfinder index");
+            return Err(())
+        }
+    }
+    match index.read_u16::<byteorder::LittleEndian>() {
+        Ok(index_version) => {
+            if index_version != SF_VERSION {
+                eprintln!("socksfinder: can't read index in format version {}, only format version {} is supported by socksfinder v{}", index_version, SF_VERSION, version());
+                return Err(())
+            }
+        },
+        Err(_) => {
+            eprintln!("socksfinder: unable to read index format version number");
+            return Err(())
+        }
+    }
     // TODO read last u32 -> offset of the FST
     // TODO mmap FST
     for user in users {
@@ -115,7 +146,6 @@ pub fn query(index: String, users: &Vec<String>) -> Result<(), ()> {
         // TODO lookup user in FST -> page offsets list offset for that user
         // TODO add (username, offset) to list
     }
-    unimplemented!();
     // TODO heap merge of all lists
     // TODO while ! heap.is_empty()
     // TODO   while heap.peek() is same
@@ -123,4 +153,5 @@ pub fn query(index: String, users: &Vec<String>) -> Result<(), ()> {
     // TODO     update co-occurrence matrix
     // TODO   write CSV line with page name, number of users, user names
     // TODO write CSV co-occurence matrix
+    Ok(())
 }
