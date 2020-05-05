@@ -87,18 +87,18 @@ pub fn build(reader: &mut dyn BufRead, writer: &mut dyn Write) -> Result<(), ()>
     }
     current_offset += previous_page_length as u32;
     for page_offsets in user_page_offsets.values_mut() {
-        writer.write_u32::<byteorder::LittleEndian>(page_offsets.len() as u32).unwrap();
         for page_offset in page_offsets.iter() {
             writer.write_u32::<byteorder::LittleEndian>(*page_offset).unwrap();
         }
-        page_offsets[0] = current_offset;
-        current_offset += (page_offsets.len() as u32 + 1) * 4;
-        page_offsets.truncate(1);
+        current_offset += (page_offsets.len() as u32) * 4;
+        page_offsets.clear();
+        page_offsets.push(current_offset);
+        page_offsets.push(page_offsets.len() as u32);
     }
     let fst_offset = current_offset;
     let mut fst_builder = MapBuilder::new(writer).unwrap();
     for (user, page_offsets) in user_page_offsets {
-        fst_builder.insert(user, page_offsets[0].into()).unwrap();
+        fst_builder.insert(user, (page_offsets[0] as u64) << 32 | (page_offsets[1] as u64)).unwrap();
     }
     let writer = fst_builder.into_inner().unwrap();
     writer.write_u32::<byteorder::LittleEndian>(fst_offset).unwrap();
@@ -106,7 +106,8 @@ pub fn build(reader: &mut dyn BufRead, writer: &mut dyn Write) -> Result<(), ()>
 }
 
 pub fn query(index: String, users: &Vec<String>) -> Result<(), ()> {
-    println!("querying users on index '{}':", index);
+    // TODO check magic number
+    // TODO check version number
     // TODO read last u32 -> offset of the FST
     // TODO mmap FST
     for user in users {
