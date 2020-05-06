@@ -10,14 +10,20 @@ use quick_xml::{
     events::Event,
 };
 
-use std::collections::BTreeMap;
-
-use std::io::{
-    BufRead,
-    Read,
-    Seek,
-    SeekFrom,
-    Write,
+use std::{
+    cmp::Reverse,
+    collections::{
+        BinaryHeap,
+        BTreeMap,
+        HashSet,
+    },
+    io::{
+        BufRead,
+        Read,
+        Seek,
+        SeekFrom,
+        Write,
+    },
 };
 
 enum Tag {
@@ -120,6 +126,12 @@ pub fn build(reader: &mut dyn BufRead, writer: &mut dyn Write) -> Result<(), ()>
     Ok(())
 }
 
+struct InvertedList<'a> {
+    user: &'a String,
+    position: usize,
+    page_offsets: Vec<u32>,
+}
+
 pub fn query(index: &mut dyn Index, users: &Vec<String>) -> Result<(), ()> {
     let mut identifier_bytes = [0u8; SF_IDENTIFIER_LENGTH];
     match index.read(&mut identifier_bytes) {
@@ -154,10 +166,8 @@ pub fn query(index: &mut dyn Index, users: &Vec<String>) -> Result<(), ()> {
     let mut fst_bytes = vec![];
     fst_reader.read_to_end(&mut fst_bytes).unwrap();
     let fst = fst::Map::from_bytes(fst_bytes).unwrap();
-
-    // TODO create list of (user, current_page_offset, page_offsets)
-    // TODO create min-heap
-
+    let mut lists = vec![];
+    let mut min_page_offsets = HashSet::with_capacity(users.len());
     for user in users {
         match fst.get(&user) {
             None => {
@@ -173,31 +183,42 @@ pub fn query(index: &mut dyn Index, users: &Vec<String>) -> Result<(), ()> {
                 for _ in 0..edit_count {
                     page_offsets.push(index.read_u32::<byteorder::LittleEndian>().unwrap());
                 }
-                let mut page_name = String::new();
-                for page_offset in page_offsets {
-                    index.seek(SeekFrom::Start(page_offset as u64)).unwrap();
-                    index.read_line(&mut page_name).unwrap();
-                    print!("\t{} => {}", page_offset, page_name);
-                    page_name.clear();
-                }
-                // TODO add (username, 0, page_offsets) to list
-                // TODO add first offset to min-heap
+                lists.push(InvertedList {
+                    user: user,
+                    position: 0,
+                    page_offsets: page_offsets
+                });
+                min_page_offsets.insert(lists.last().unwrap().page_offsets[0]);
             }
         }
     }
-    // TODO while ! heap.is_empty()
-    // TODO   min_offset = heap.pop()
-    // TODO   for (user, current_page_offset, page_offsets) in list {
-    // TODO     if page_offsets[current_page_offset] == min_offset {
-    // TODO       user_count += 1
-    // TODO       users.push(user)
-    // TODO     }
-    // TODO   }
-    // TODO   if user_count >= threshold {
-    // TODO     write CSV line with page name, number of users, user names
-    // TODO   }
-    // TODO   update co-occurence matrix
-    // TODO }
+    let mut heap = BinaryHeap::with_capacity(min_page_offsets.len());
+    for min_page_offset in min_page_offsets {
+        heap.push(Reverse(min_page_offset));
+    }
+    let mut page_name = String::new();
+    while !heap.is_empty() {
+        let Reverse(current_page_offset) = heap.pop().unwrap();
+        index.seek(SeekFrom::Start(current_page_offset as u64)).unwrap();
+        index.read_line(&mut page_name).unwrap();
+        print!("Page: {}", page_name);
+        page_name.clear();
+        for list in &mut lists {
+            if list.page_offsets[list.position] == current_page_offset {
+                println!("\t=> {}", list.user);
+                // TODO user_count += 1
+                // TODO users.push(user)
+                if list.position < list.page_offsets.len() - 1 {
+                    list.position += 1;
+                    heap.push(Reverse(list.page_offsets[list.position]));
+                }
+            }
+        }
+        // TODO   if user_count >= threshold {
+        // TODO     write CSV line with page name, number of users, user names
+        // TODO   }
+        // TODO   update co-occurence matrix
+    }
     // TODO write CSV co-occurence matrix
     Ok(())
 }
