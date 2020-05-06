@@ -46,7 +46,6 @@ pub fn version() -> &'static str {
 pub fn build(reader: &mut dyn BufRead, writer: &mut dyn Write) -> Result<(), ()> {
     writer.write_all(&SF_IDENTIFIER).unwrap();
     writer.write_u16::<byteorder::LittleEndian>(SF_VERSION).unwrap();
-
     let mut current_offset = 4u32;
     let mut user_page_offsets = BTreeMap::new();
     let mut xml_reader = Reader::from_reader(reader);
@@ -132,7 +131,7 @@ struct InvertedList<'a> {
     page_offsets: Vec<u32>,
 }
 
-pub fn query(index: &mut dyn Index, users: &Vec<String>) -> Result<(), ()> {
+pub fn query(index: &mut dyn Index, users: &Vec<String>, threshold: usize) -> Result<(), ()> {
     let mut identifier_bytes = [0u8; SF_IDENTIFIER_LENGTH];
     match index.read(&mut identifier_bytes) {
         Ok(length) => {
@@ -177,7 +176,6 @@ pub fn query(index: &mut dyn Index, users: &Vec<String>) -> Result<(), ()> {
             Some(value) => {
                 let edit_count = value & 0xFF_FF_FF_FF;
                 let page_offsets_offset = value >> 32;
-                println!("User '{}' has {} contributions at offset {}", user, edit_count, page_offsets_offset);
                 index.seek(SeekFrom::Start(page_offsets_offset)).unwrap();
                 let mut page_offsets = Vec::<u32>::with_capacity(edit_count as usize);
                 for _ in 0..edit_count {
@@ -197,28 +195,36 @@ pub fn query(index: &mut dyn Index, users: &Vec<String>) -> Result<(), ()> {
         heap.push(Reverse(min_page_offset));
     }
     let mut page_name = String::new();
+    let mut editors = Vec::with_capacity(users.len());
     while !heap.is_empty() {
         let Reverse(current_page_offset) = heap.pop().unwrap();
         index.seek(SeekFrom::Start(current_page_offset as u64)).unwrap();
         index.read_line(&mut page_name).unwrap();
-        print!("Page: {}", page_name);
-        page_name.clear();
+        page_name.pop();
+        let mut editors_count = 0;
         for list in &mut lists {
             if list.page_offsets[list.position] == current_page_offset {
-                println!("\t=> {}", list.user);
-                // TODO user_count += 1
-                // TODO users.push(user)
+                editors_count += 1;
+                editors.push(list.user);
                 if list.position < list.page_offsets.len() - 1 {
                     list.position += 1;
                     heap.push(Reverse(list.page_offsets[list.position]));
                 }
             }
         }
-        // TODO   if user_count >= threshold {
-        // TODO     write CSV line with page name, number of users, user names
-        // TODO   }
-        // TODO   update co-occurence matrix
+        if editors_count >= threshold {
+            let mut editor_names = String::with_capacity(editors.len() * 20);
+            for editor in &editors {
+                editor_names.push_str(editor);
+                editor_names.push_str(", ");
+            }
+            editor_names.truncate(editor_names.len() - 2);
+            println!("{}: {} ({})", page_name, editors_count, editor_names);
+        }
+        page_name.clear();
+        // TODO update co-occurence matrix
+        editors.clear();
     }
-    // TODO write CSV co-occurence matrix
+    // TODO write co-occurence matrix
     Ok(())
 }
