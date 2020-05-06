@@ -2,6 +2,7 @@ use std::{
     io::{
         BufReader,
         BufWriter,
+        Write,
     },
     process,
 };
@@ -52,25 +53,25 @@ fn main() {
     if args.flag_version {
         println!("socksfinder v{}", socksfinder::version());
     } else {
-        let result = if args.cmd_build {
+        if args.cmd_build {
             let output = File::create(&args.arg_index).unwrap_or_else(|cause| {
                 eprintln!("socksfinder: can't open index: {}: {}", &args.arg_index, &cause);
                 process::exit(1);
             });
             let mut buffered_output = BufWriter::new(output);
-            socksfinder::build(&mut std::io::stdin().lock(), &mut buffered_output)
+            if socksfinder::build(&mut std::io::stdin().lock(), &mut buffered_output).is_err() ||
+               buffered_output.flush().is_err() {
+                process::exit(1);
+            }
         } else if args.cmd_query {
             let input = File::open(&args.arg_index).unwrap_or_else(|cause| {
                 eprintln!("socksfinder: can't open index: {}: {}", &args.arg_index, &cause);
                 process::exit(1);
             });
             let mut buffered_input = BufReader::new(input);
-            socksfinder::query(&mut buffered_input, &args.arg_user)
-        } else {
-            Ok(())
-        };
-        if result.is_err() {
-            process::exit(1);
+            if socksfinder::query(&mut buffered_input, &args.arg_user).is_err() {
+                process::exit(1);
+            }
         }
     }
 }
