@@ -6,7 +6,7 @@
 
 ```
 Usage: socksfinder build <index>
-       socksfinder query [--cooccurrences | --threshold=<threshold>] <index> <user>...
+       socksfinder query [--cooccurrences | --threshold=<threshold>] [--order=<order>] <index> <user>...
        socksfinder -h | --help
        socksfinder --version
 
@@ -16,11 +16,14 @@ Commands:
 
 Arguments:
     index                    Index built from a MediaWiki dump.
+    order                    Order in which results should be displayed.
+                             Valid values: none, count_decreasing, count_increasing, alphabetical.
     user                     User which has modified pages to look for.
 
 Options:
     --cooccurrences          Show the co-occurrences matrix instead of the page names.
     -h, --help               Show this screen.
+    --order=<order>          Order of results, none can be faster and consume less memory [default: none].
     --threshold=<threshold>  Number of different contributors, 0 for all of them [default: 0].
     --version                Show version.
 ```

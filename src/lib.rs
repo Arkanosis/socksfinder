@@ -16,6 +16,8 @@ use quick_xml::{
     events::Event,
 };
 
+use serde_derive::Deserialize;
+
 use std::{
     cmp::Reverse,
     collections::{
@@ -37,6 +39,16 @@ enum Tag {
     Title,
     UserName,
     Other,
+}
+
+#[allow(non_camel_case_types)]
+#[derive(Deserialize)]
+#[derive(PartialEq)]
+pub enum Order {
+    Alphabetical,
+    Count_Decreasing,
+    Count_Increasing,
+    None,
 }
 
 const SF_IDENTIFIER_LENGTH: usize = 2;
@@ -138,7 +150,14 @@ struct InvertedList<'a> {
     page_offsets: Vec<u32>,
 }
 
-pub fn query(index: &mut dyn Index, users: &Vec<String>, threshold: usize, show_cooccurrences: bool) -> Result<(), ()> {
+struct Page {
+    page_name: String,
+    editor_count: usize,
+    editor_names: String,
+}
+
+pub fn query(index: &mut dyn Index, users: &Vec<String>, threshold: usize, order: Order, show_cooccurrences: bool) -> Result<(), ()> {
+    // TODO sort and uniquify users
     let mut identifier_bytes = [0u8; SF_IDENTIFIER_LENGTH];
     match index.read(&mut identifier_bytes) {
         Ok(length) => {
@@ -209,12 +228,13 @@ pub fn query(index: &mut dyn Index, users: &Vec<String>, threshold: usize, show_
     } else {
         HashMap::new()
     };
+    let mut pages = Vec::new();
     while !heap.is_empty() {
         let Reverse(current_page_offset) = heap.pop().unwrap();
-        let mut editors_count = 0;
+        let mut editor_count = 0;
         for list in &mut lists {
             if list.page_offsets[list.position] == current_page_offset {
-                editors_count += 1;
+                editor_count += 1;
                 editors.push(list.user);
                 if list.position < list.page_offsets.len() - 1 {
                     list.position += 1;
@@ -228,7 +248,7 @@ pub fn query(index: &mut dyn Index, users: &Vec<String>, threshold: usize, show_
                     cooccurrences.entry((first_editor.clone(), second_editor.clone())).and_modify(|value| { *value += 1 }).or_insert(1);
                 }
             }
-        } else if editors_count >= threshold {
+        } else if editor_count >= threshold {
             index.seek(SeekFrom::Start(current_page_offset as u64)).unwrap();
             index.read_line(&mut page_name).unwrap();
             page_name.pop();
@@ -238,25 +258,42 @@ pub fn query(index: &mut dyn Index, users: &Vec<String>, threshold: usize, show_
                 editor_names.push_str(", ");
             }
             editor_names.truncate(editor_names.len() - 2);
-            println!("{}: {} ({})", page_name, editors_count, editor_names);
+            match order {
+                Order::None => println!("{}: {} ({})", page_name, editor_count, editor_names),
+                _ => pages.push(Page {
+                    page_name: page_name.clone(),
+                    editor_count: editor_count,
+                    editor_names: editor_names
+                }),
+            }
             page_name.clear();
         }
         editors.clear();
     }
     if show_cooccurrences {
         let mut sorted_users = users.clone();
-        sorted_users.sort_unstable_by(|first_user, second_user| {
-            let total = |user: &String| {
-                let mut sum = 0;
-                for other_user in users {
-                    if other_user != user {
-                        sum += cooccurrences.get(&(&user.clone(), &other_user.clone())).unwrap_or(&0);
+        if order != Order::None {
+            sorted_users.sort_unstable_by(|first_user, second_user| {
+                if order == Order::Alphabetical {
+                    first_user.cmp(&second_user)
+                } else {
+                    let total = |user: &String| {
+                        let mut sum = 0;
+                        for other_user in users {
+                            if other_user != user {
+                                sum += cooccurrences.get(&(&user.clone(), &other_user.clone())).unwrap_or(&0);
+                            }
+                        }
+                        sum
+                    };
+                    if order == Order::Count_Decreasing {
+                        total(second_user).cmp(&total(first_user))
+                    } else {
+                        total(first_user).cmp(&total(second_user))
                     }
                 }
-                sum
-            };
-            total(second_user).cmp(&total(first_user))
-        });
+            });
+        }
         let mut table = Table::new();
         let mut row = vec![Cell::new("")];
         for user in &sorted_users {
@@ -275,6 +312,23 @@ pub fn query(index: &mut dyn Index, users: &Vec<String>, threshold: usize, show_
             table.add_row(Row::new(row));
         }
         table.printstd();
+    } else {
+        match order {
+            Order::None => (),
+            _ => {
+                pages.sort_unstable_by(|first_page, second_page| {
+                    match order {
+                        Order::Alphabetical => first_page.page_name.cmp(&second_page.page_name),
+                        Order::Count_Decreasing => second_page.editor_count.cmp(&first_page.editor_count),
+                        Order::Count_Increasing => first_page.editor_count.cmp(&second_page.editor_count),
+                        _ => unreachable!()
+                    }
+                });
+                for page in pages {
+                    println!("{}: {} ({})", page.page_name, page.editor_count, page.editor_names)
+                }
+            }
+        }
     }
     Ok(())
 }

@@ -13,7 +13,7 @@ use std::fs::File;
 
 const USAGE: &str = "
 Usage: socksfinder build <index>
-       socksfinder query [--cooccurrences | --threshold=<threshold>] <index> <user>...
+       socksfinder query [--cooccurrences | --threshold=<threshold>] [--order=<order>] <index> <user>...
        socksfinder -h | --help
        socksfinder --version
 
@@ -23,11 +23,14 @@ Commands:
 
 Arguments:
     index                    Index built from a MediaWiki dump.
+    order                    Order in which results should be displayed.
+                             Valid values: none, count_decreasing, count_increasing, alphabetical.
     user                     User which has modified pages to look for.
 
 Options:
     --cooccurrences          Show the co-occurrences matrix instead of the page names.
     -h, --help               Show this screen.
+    --order=<order>          Order of results, none can be faster and consume less memory [default: none].
     --threshold=<threshold>  Number of different contributors, 0 for all of them [default: 0].
     --version                Show version.
 ";
@@ -39,6 +42,7 @@ struct Args {
     arg_index: String,
     arg_user: Vec<String>,
     flag_cooccurrences: bool,
+    flag_order: socksfinder::Order,
     flag_threshold: usize,
     flag_version: bool,
 }
@@ -73,7 +77,7 @@ fn main() {
                 process::exit(1);
             });
             let mut buffered_input = BufReader::new(input);
-            if socksfinder::query(&mut buffered_input, &args.arg_user, if args.flag_threshold != 0 { args.flag_threshold } else { args.arg_user.len() }, args.flag_cooccurrences).is_err() {
+            if socksfinder::query(&mut buffered_input, &args.arg_user, if args.flag_threshold != 0 { args.flag_threshold } else { args.arg_user.len() }, args.flag_order, args.flag_cooccurrences).is_err() {
                 process::exit(1);
             }
         }
