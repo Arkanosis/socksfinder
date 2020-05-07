@@ -332,3 +332,7 @@ pub fn query(index: &mut dyn Index, users: &Vec<String>, threshold: usize, order
     }
     Ok(())
 }
+
+pub fn serve(index: &mut dyn Index, hostname: String, port: u16) -> Result<(), ()> {
+    unimplemented!();
+}

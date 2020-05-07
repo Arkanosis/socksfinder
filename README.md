@@ -7,12 +7,14 @@
 ```
 Usage: socksfinder build <index>
        socksfinder query [--cooccurrences | --threshold=<threshold>] [--order=<order>] <index> <user>...
+       socksfinder serve [--hostname=<hostname>] [--port=<port>] <index>
        socksfinder -h | --help
        socksfinder --version
 
 Commands:
     build                    Build an index from a MediaWiki XML dump (read on the standard input).
     query                    Search pages modified by several users in the index.
+    serve                    Start a small HTTP server to serve the index.
 
 Arguments:
     index                    Index built from a MediaWiki dump.
@@ -21,8 +23,10 @@ Arguments:
 Options:
     --cooccurrences          Show the co-occurrences matrix instead of the page names.
     -h, --help               Show this screen.
+    --hostname=<hostname>    Hostname to resolve to find the network interface to serve the index [default: localhost].
     --order=<order>          Order of results, none can be faster and consume less memory [default: none].
                              Valid orders: none, count_decreasing, count_increasing, alphabetical.
+    --port=<port>            Port on which to serve the index [default: 8080].
     --threshold=<threshold>  Number of different contributors, 0 for all of them [default: 0].
     --version                Show version.
 ```
