@@ -37,17 +37,17 @@ Building an index can take quite a while and eat a significant amount of memory
 (depending on the size of the dump). For the French Wikipedia, it takes about
 45 minutes with a fast internet access, and consumes close to 500 MiB of RAM.
 
-```sh
-curl -s "https://dumps.wikimedia.org/frwiki/latest/frwiki-latest-stub-meta-history.xml.gz" |
-    gunzip |
-    socksfinder build frwiki-latest.idx
+```console
+$ curl -s "https://dumps.wikimedia.org/frwiki/latest/frwiki-latest-stub-meta-history.xml.gz" |
+     gunzip |
+     socksfinder build frwiki-latest.idx
 ```
 
 This only needs to be done once, though, and the resulting index can be
 redistributed to other users who don't have a fast enough internet access or
 a powerful enough computer. For the French Wikipedia, the index is almost
-600 Mio big and can be compressed quite efficiently for distribution (less
-than 300 Mio when compressed using `gzip --best`.
+600 MiB big and can be compressed quite efficiently for distribution (less
+than 300 MiB when compressed using `gzip --best`).
 
 ### Searching for pages modified by editors from a list
 
@@ -58,24 +58,40 @@ per user depending on your CPU and the number of unique modified pages, though
 it can take as much as a few seconds when searching for pages modified by
 editors who have modified several hundred thousands of distinct pages.
 
-```sh
-socksfinder query frwiki-latest.idx Arkanosis Arktest Arkbot
+```console
+$ socksfinder query frwiki-latest.idx Arkanosis Arktest Arkbot
+Projet:Articles sans portail/1: 3 (Arkanosis, Arktest, Arkbot)
+Utilisateur:Arktest/test: 3 (Arkanosis, Arktest, Arkbot)
 ```
 
 By default, only pages modified by all the users in the list are returned. If
-you want pages modified by at least some threashold, use the `--threshold`
+you want pages modified by at least some threshold, use the `--threshold`
 option.
 
-```sh
-socksfinder query --threshold=2 frwiki-latest.idx Arkanosis Arktest Arkbot
+```console
+$ socksfinder query --threshold=2 frwiki-latest.idx Arkanosis Arktest Arkbot
+Utilisateur:Arkbot/Ébauches dans le top 1000: 2 (Arkanosis, Arkbot)
+Modèle:Infobox Equipe MotoGP/Bac à sable: 2 (Arkanosis, Arktest)
+Projet:Articles sans portail/1: 3 (Arkanosis, Arktest, Arkbot)
+Aholfing: 2 (Arktest, Arkbot)
+[141 more lines]
 ```
 
 Instead of the list of modified pages, you can get the co-occurrences matrix,
 that is, the matrix of the number of pages modified by each pair of editors
 from the list.
 
-```sh
-socksfinder query --cooccurrences frwiki-latest.idx Arkanosis Arktest Arkbot
+```console
+$ socksfinder query --cooccurrences frwiki-latest.idx Arkanosis Arktest Arkbot
++-----------+-----------+---------+--------+
+|           | Arkanosis | Arktest | Arkbot |
++-----------+-----------+---------+--------+
+| Arkanosis |           | 106     | 40     |
++-----------+-----------+---------+--------+
+| Arktest   | 106       |         | 3      |
++-----------+-----------+---------+--------+
+| Arkbot    | 40        | 3       |        |
++-----------+-----------+---------+--------+
 ```
 
 ## Contributing and reporting bugs
