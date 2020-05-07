@@ -5,6 +5,12 @@ use byteorder::{
 
 use fst::MapBuilder;
 
+use prettytable::{
+    Cell,
+    Row,
+    Table,
+};
+
 use quick_xml::{
     Reader,
     events::Event,
@@ -15,6 +21,7 @@ use std::{
     collections::{
         BinaryHeap,
         BTreeMap,
+        HashMap,
         HashSet,
     },
     io::{
@@ -131,7 +138,7 @@ struct InvertedList<'a> {
     page_offsets: Vec<u32>,
 }
 
-pub fn query(index: &mut dyn Index, users: &Vec<String>, threshold: usize) -> Result<(), ()> {
+pub fn query(index: &mut dyn Index, users: &Vec<String>, threshold: usize, show_cooccurrences: bool) -> Result<(), ()> {
     let mut identifier_bytes = [0u8; SF_IDENTIFIER_LENGTH];
     match index.read(&mut identifier_bytes) {
         Ok(length) => {
@@ -196,11 +203,14 @@ pub fn query(index: &mut dyn Index, users: &Vec<String>, threshold: usize) -> Re
     }
     let mut page_name = String::new();
     let mut editors = Vec::with_capacity(users.len());
+    let mut cooccurrences = if show_cooccurrences {
+        // TODO only half of the matrix is actually necessary
+        HashMap::with_capacity(users.len() * users.len())
+    } else {
+        HashMap::new()
+    };
     while !heap.is_empty() {
         let Reverse(current_page_offset) = heap.pop().unwrap();
-        index.seek(SeekFrom::Start(current_page_offset as u64)).unwrap();
-        index.read_line(&mut page_name).unwrap();
-        page_name.pop();
         let mut editors_count = 0;
         for list in &mut lists {
             if list.page_offsets[list.position] == current_page_offset {
@@ -212,7 +222,16 @@ pub fn query(index: &mut dyn Index, users: &Vec<String>, threshold: usize) -> Re
                 }
             }
         }
-        if editors_count >= threshold {
+        if show_cooccurrences && editors.len() > 1 {
+            for first_editor in &editors {
+                for second_editor in &editors {
+                    cooccurrences.entry((first_editor.clone(), second_editor.clone())).and_modify(|value| { *value += 1 }).or_insert(1);
+                }
+            }
+        } else if editors_count >= threshold {
+            index.seek(SeekFrom::Start(current_page_offset as u64)).unwrap();
+            index.read_line(&mut page_name).unwrap();
+            page_name.pop();
             let mut editor_names = String::with_capacity(editors.len() * 20);
             for editor in &editors {
                 editor_names.push_str(editor);
@@ -220,11 +239,42 @@ pub fn query(index: &mut dyn Index, users: &Vec<String>, threshold: usize) -> Re
             }
             editor_names.truncate(editor_names.len() - 2);
             println!("{}: {} ({})", page_name, editors_count, editor_names);
+            page_name.clear();
         }
-        page_name.clear();
-        // TODO update co-occurence matrix
         editors.clear();
     }
-    // TODO write co-occurence matrix
+    if show_cooccurrences {
+        let mut sorted_users = users.clone();
+        sorted_users.sort_unstable_by(|first_user, second_user| {
+            let total = |user: &String| {
+                let mut sum = 0;
+                for other_user in users {
+                    if other_user != user {
+                        sum += cooccurrences.get(&(&user.clone(), &other_user.clone())).unwrap_or(&0);
+                    }
+                }
+                sum
+            };
+            total(second_user).cmp(&total(first_user))
+        });
+        let mut table = Table::new();
+        let mut row = vec![Cell::new("")];
+        for user in &sorted_users {
+            row.push(Cell::new(&user).style_spec("b"));
+        }
+        table.add_row(Row::new(row));
+        for row_user in &sorted_users {
+            let mut row = vec![Cell::new(&row_user).style_spec("b")];
+            for cell_user in &sorted_users {
+                if row_user == cell_user {
+                    row.push(Cell::new(""));
+                } else {
+                    row.push(Cell::new(&(cooccurrences.get(&(&row_user.clone(), &cell_user.clone())).unwrap_or(&0)).to_string()));
+                }
+            }
+            table.add_row(Row::new(row));
+        }
+        table.printstd();
+    }
     Ok(())
 }

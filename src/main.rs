@@ -13,7 +13,7 @@ use std::fs::File;
 
 const USAGE: &str = "
 Usage: socksfinder build <index>
-       socksfinder query [--threshold=<threshold>] <index> <user>...
+       socksfinder query [--cooccurrences | --threshold=<threshold>] <index> <user>...
        socksfinder -h | --help
        socksfinder --version
 
@@ -26,6 +26,7 @@ Arguments:
     user                     User which has modified pages to look for.
 
 Options:
+    --cooccurrences          Show the co-occurrences matrix instead of the page names.
     -h, --help               Show this screen.
     --threshold=<threshold>  Number of different contributors, 0 for all of them [default: 0].
     --version                Show version.
@@ -37,6 +38,7 @@ struct Args {
     cmd_query: bool,
     arg_index: String,
     arg_user: Vec<String>,
+    flag_cooccurrences: bool,
     flag_threshold: usize,
     flag_version: bool,
 }
@@ -71,7 +73,7 @@ fn main() {
                 process::exit(1);
             });
             let mut buffered_input = BufReader::new(input);
-            if socksfinder::query(&mut buffered_input, &args.arg_user, if args.flag_threshold != 0 { args.flag_threshold } else { args.arg_user.len() }).is_err() {
+            if socksfinder::query(&mut buffered_input, &args.arg_user, if args.flag_threshold != 0 { args.flag_threshold } else { args.arg_user.len() }, args.flag_cooccurrences).is_err() {
                 process::exit(1);
             }
         }

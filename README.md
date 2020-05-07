@@ -6,7 +6,7 @@
 
 ```
 Usage: socksfinder build <index>
-       socksfinder query [--threshold=<threshold>] <index> <user>...
+       socksfinder query [--cooccurrences | --threshold=<threshold>] <index> <user>...
        socksfinder -h | --help
        socksfinder --version
 
@@ -19,6 +19,7 @@ Arguments:
     user                     User which has modified pages to look for.
 
 Options:
+    --cooccurrences          Show the co-occurrences matrix instead of the page names.
     -h, --help               Show this screen.
     --threshold=<threshold>  Number of different contributors, 0 for all of them [default: 0].
     --version                Show version.
@@ -67,6 +68,14 @@ option.
 
 ```sh
 socksfinder query --threshold=2 frwiki-latest.idx Arkanosis Arktest Arkbot
+```
+
+Instead of the list of modified pages, you can get the co-occurrences matrix,
+that is, the matrix of the number of pages modified by each pair of editors
+from the list.
+
+```sh
+socksfinder query --cooccurrences frwiki-latest.idx Arkanosis Arktest Arkbot
 ```
 
 ## Contributing and reporting bugs
