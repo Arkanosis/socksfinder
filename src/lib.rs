@@ -1,3 +1,15 @@
+use actix_files::NamedFile;
+
+use actix_web::{
+    get,
+    web,
+    App,
+    HttpResponse,
+    HttpServer,
+    Responder,
+    Result as WebResult,
+};
+
 use byteorder::{
     ReadBytesExt,
     WriteBytesExt,
@@ -333,6 +345,30 @@ pub fn query(index: &mut dyn Index, users: &Vec<String>, threshold: usize, order
     Ok(())
 }
 
-pub fn serve(index: &mut dyn Index, hostname: String, port: u16) -> Result<(), ()> {
-    unimplemented!();
+struct AppState {
+    // Nothing
+}
+
+#[get("/")]
+async fn serve_index(data: web::Data<AppState>) -> WebResult<NamedFile> {
+    Ok(NamedFile::open("static/index.htm")?)
+}
+
+#[get("/version")]
+async fn serve_version(data: web::Data<AppState>) -> impl Responder {
+    HttpResponse::Ok().body(format!("Running socksfinder v{}", version()))
+}
+
+#[actix_rt::main]
+pub async fn serve(index: &mut dyn Index, hostname: String, port: u16) -> std::io::Result<()> {
+    HttpServer::new(move || {
+        App::new()
+            .data(AppState {
+            })
+            .service(serve_index)
+            .service(serve_version)
+    })
+        .bind(format!("{}:{}", hostname, port))?
+        .run()
+        .await
 }
