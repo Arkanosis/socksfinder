@@ -1,4 +1,4 @@
-# socksfinder [![Toolforge](https://img.shields.io/badge/toolforge-soon-990000.svg)](https://socksfinder.toolforge.org/) [![](https://img.shields.io/crates/v/socksfinder.svg)](https://crates.io/crates/socksfinder) [![License](https://img.shields.io/badge/license-ISC-blue.svg)](/LICENSE) [![Build status](https://travis-ci.org/Arkanosis/socksfinder.svg?branch=master)](https://travis-ci.org/Arkanosis/socksfinder)
+# socksfinder [![Toolforge](https://img.shields.io/endpoint?url=https%3A%2F%2Fsocksfinder.toolforge.org%2Fbadge&label=toolforge&color=990000)](https://socksfinder.toolforge.org/) [![](https://img.shields.io/crates/v/socksfinder.svg)](https://crates.io/crates/socksfinder) [![License](https://img.shields.io/badge/license-ISC-blue.svg)](/LICENSE) [![Build status](https://travis-ci.org/Arkanosis/socksfinder.svg?branch=master)](https://travis-ci.org/Arkanosis/socksfinder)
 
 **socksfinder** is a search engine for sock puppets on Wikimedia projects.
 

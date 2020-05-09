@@ -2,7 +2,11 @@ use actix_files::NamedFile;
 
 use actix_web::{
     get,
-    web,
+    web::{
+        Data,
+        Json,
+        Path,
+    },
     App,
     HttpResponse,
     HttpServer,
@@ -28,7 +32,10 @@ use quick_xml::{
     events::Event,
 };
 
-use serde_derive::Deserialize;
+use serde_derive::{
+    Deserialize,
+    Serialize,
+};
 
 use std::{
     cmp::Reverse,
@@ -350,22 +357,48 @@ struct AppState {
 }
 
 #[get("/")]
-async fn serve_index(data: web::Data<AppState>) -> WebResult<NamedFile> {
+async fn serve_index(data: Data<AppState>) -> WebResult<NamedFile> {
     Ok(NamedFile::open("static/index.htm")?)
 }
 
+#[derive(Serialize)]
+struct BadgeResponse {
+    label: String,
+    message: String,
+    schemaVersion: u32,
+}
+
+#[get("/badge")]
+async fn serve_badge(data: Data<AppState>) -> WebResult<Json<BadgeResponse>> {
+    Ok(Json(BadgeResponse {
+        label: "socksfinder".to_string(),
+        message: version().to_string(),
+        schemaVersion: 1,
+    }))
+}
+
+#[get("/query/{users}")]
+async fn serve_query(info: Path<String>, data: Data<AppState>) -> impl Responder {
+    let users: Vec<&str> = info.split('&').collect();
+    // TODO modify the query() function to write to a Write instead of stdout
+    HttpResponse::Ok().body(format!("query({})\n\n", users.join(", ")))
+}
+
 #[get("/version")]
-async fn serve_version(data: web::Data<AppState>) -> impl Responder {
+async fn serve_version(data: Data<AppState>) -> impl Responder {
     HttpResponse::Ok().body(format!("Running socksfinder v{}", version()))
 }
 
 #[actix_rt::main]
 pub async fn serve(index: &mut dyn Index, hostname: String, port: u16) -> std::io::Result<()> {
+    println!("Listening on {}:{}...", hostname, port);
     HttpServer::new(move || {
         App::new()
             .data(AppState {
-            })
+        })
             .service(serve_index)
+            .service(serve_badge)
+            .service(serve_query)
             .service(serve_version)
     })
         .bind(format!("{}:{}", hostname, port))?
