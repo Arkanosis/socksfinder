@@ -2,6 +2,7 @@ use actix_files::NamedFile;
 
 use actix_web::{
     get,
+    http::header::ContentType,
     web::{
         Data,
         Json,
@@ -31,6 +32,8 @@ use quick_xml::{
     Reader,
     events::Event,
 };
+
+use mime::TEXT_PLAIN_UTF_8;
 
 use serde_derive::{
     Deserialize,
@@ -408,7 +411,7 @@ async fn serve_query(query_request: Query<QueryRequest>, data: Data<AppState>) -
     let mut cursor = Cursor::new(&*data.index);
     let mut response = vec![];
     query(&mut cursor, &mut response, &users, query_request.threshold.unwrap_or(users.len()), query_request.order.unwrap_or(Order::None), false);
-    HttpResponse::Ok().body(response)
+    HttpResponse::Ok().set(ContentType(TEXT_PLAIN_UTF_8)).body(response)
 }
 
 #[get("/version")]

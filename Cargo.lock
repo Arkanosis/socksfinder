@@ -1470,6 +1470,7 @@ dependencies = [
  "byteorder",
  "docopt",
  "fst",
+ "mime",
  "prettytable-rs",
  "quick-xml",
  "serde",
