@@ -58,6 +58,7 @@ use std::{
         Write,
     },
     sync::Arc,
+    time::Instant,
 };
 
 enum Tag {
@@ -421,8 +422,12 @@ async fn serve_version(_data: Data<AppState>) -> impl Responder {
 
 #[actix_rt::main]
 pub async fn serve(mut index: File, hostname: String, port: u16) -> std::io::Result<()> {
+    println!("Loading index...");
     let mut ram_index = vec![];
-    index.read_to_end(&mut ram_index);
+    let start = Instant::now();
+    index.read_to_end(&mut ram_index).unwrap();
+    let duration = start.elapsed();
+    println!("Index loaded in {:?}", duration);
     let ram_index = Arc::new(ram_index);
     println!("Listening on {}:{}...", hostname, port);
     HttpServer::new(move || {
