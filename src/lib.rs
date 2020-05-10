@@ -5,7 +5,7 @@ use actix_web::{
     web::{
         Data,
         Json,
-        Path,
+        Query,
     },
     App,
     HttpResponse,
@@ -45,8 +45,10 @@ use std::{
         HashMap,
         HashSet,
     },
+    fs::File,
     io::{
         BufRead,
+        BufReader,
         Read,
         Seek,
         SeekFrom,
@@ -61,6 +63,8 @@ enum Tag {
 }
 
 #[allow(non_camel_case_types)]
+#[derive(Clone)]
+#[derive(Copy)]
 #[derive(Deserialize)]
 #[derive(PartialEq)]
 pub enum Order {
@@ -365,7 +369,7 @@ pub fn query(index: &mut dyn Index, writer: &mut dyn Write, users: &Vec<String>,
 }
 
 struct AppState {
-    // Nothing
+    index: String,
 }
 
 #[get("/")]
@@ -390,11 +394,21 @@ async fn serve_badge(_data: Data<AppState>) -> WebResult<Json<BadgeResponse>> {
     }))
 }
 
-#[get("/query/{users}")]
-async fn serve_query(info: Path<String>, _data: Data<AppState>) -> impl Responder {
-    let users: Vec<&str> = info.split('&').collect();
-    // TODO modify the query() function to write to a Write instead of stdout
-    HttpResponse::Ok().body(format!("query({})\n\n", users.join(", ")))
+#[derive(Deserialize)]
+struct QueryRequest {
+    users: String,
+    threshold: Option<usize>,
+    order: Option<Order>,
+}
+
+#[get("/query")]
+async fn serve_query(query_request: Query<QueryRequest>, data: Data<AppState>) -> impl Responder {
+    let users = query_request.users.split(',').map(|user| user.to_string()).collect();
+    let input = File::open(&data.index).unwrap();
+    let mut buffered_input = BufReader::new(input);
+    let mut response = vec![];
+    query(&mut buffered_input, &mut response, &users, query_request.threshold.unwrap_or(users.len()), query_request.order.unwrap_or(Order::None), false);
+    HttpResponse::Ok().body(response)
 }
 
 #[get("/version")]
@@ -403,11 +417,12 @@ async fn serve_version(_data: Data<AppState>) -> impl Responder {
 }
 
 #[actix_rt::main]
-pub async fn serve(index: &mut dyn Index, hostname: String, port: u16) -> std::io::Result<()> {
+pub async fn serve(index: String, hostname: String, port: u16) -> std::io::Result<()> {
     println!("Listening on {}:{}...", hostname, port);
     HttpServer::new(move || {
         App::new()
             .data(AppState {
+                index: index.clone(),
             })
             .service(serve_index)
             .service(serve_badge)

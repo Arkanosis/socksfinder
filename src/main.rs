@@ -89,12 +89,7 @@ fn main() {
                 process::exit(1);
             }
         } else if args.cmd_serve {
-            let input = File::open(&args.arg_index).unwrap_or_else(|cause| {
-                eprintln!("socksfinder: can't open index: {}: {}", &args.arg_index, &cause);
-                process::exit(1);
-            });
-            let mut buffered_input = BufReader::new(input);
-            if socksfinder::serve(&mut buffered_input, args.flag_hostname, args.flag_port).is_err() {
+            if socksfinder::serve(args.arg_index.to_string(), args.flag_hostname, args.flag_port).is_err() {
                 process::exit(1);
             }
         }
