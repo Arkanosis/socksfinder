@@ -48,12 +48,13 @@ use std::{
     fs::File,
     io::{
         BufRead,
-        BufReader,
+        Cursor,
         Read,
         Seek,
         SeekFrom,
         Write,
     },
+    sync::Arc,
 };
 
 enum Tag {
@@ -369,7 +370,7 @@ pub fn query(index: &mut dyn Index, writer: &mut dyn Write, users: &Vec<String>,
 }
 
 struct AppState {
-    index: String,
+    index: Arc<Vec<u8>>,
 }
 
 #[get("/")]
@@ -404,10 +405,9 @@ struct QueryRequest {
 #[get("/query")]
 async fn serve_query(query_request: Query<QueryRequest>, data: Data<AppState>) -> impl Responder {
     let users = query_request.users.split(',').map(|user| user.to_string()).collect();
-    let input = File::open(&data.index).unwrap();
-    let mut buffered_input = BufReader::new(input);
+    let mut cursor = Cursor::new(&*data.index);
     let mut response = vec![];
-    query(&mut buffered_input, &mut response, &users, query_request.threshold.unwrap_or(users.len()), query_request.order.unwrap_or(Order::None), false);
+    query(&mut cursor, &mut response, &users, query_request.threshold.unwrap_or(users.len()), query_request.order.unwrap_or(Order::None), false);
     HttpResponse::Ok().body(response)
 }
 
@@ -417,12 +417,15 @@ async fn serve_version(_data: Data<AppState>) -> impl Responder {
 }
 
 #[actix_rt::main]
-pub async fn serve(index: String, hostname: String, port: u16) -> std::io::Result<()> {
+pub async fn serve(mut index: File, hostname: String, port: u16) -> std::io::Result<()> {
+    let mut ram_index = vec![];
+    index.read_to_end(&mut ram_index);
+    let ram_index = Arc::new(ram_index);
     println!("Listening on {}:{}...", hostname, port);
     HttpServer::new(move || {
         App::new()
             .data(AppState {
-                index: index.clone(),
+                index: Arc::clone(&ram_index),
             })
             .service(serve_index)
             .service(serve_badge)
