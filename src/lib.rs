@@ -175,7 +175,7 @@ struct Page {
     editor_names: String,
 }
 
-pub fn query(index: &mut dyn Index, users: &Vec<String>, threshold: usize, order: Order, show_cooccurrences: bool) -> Result<(), ()> {
+pub fn query(index: &mut dyn Index, writer: &mut dyn Write, users: &Vec<String>, threshold: usize, order: Order, show_cooccurrences: bool) -> Result<(), ()> {
     // TODO sort and uniquify users
     let mut identifier_bytes = [0u8; SF_IDENTIFIER_LENGTH];
     match index.read(&mut identifier_bytes) {
@@ -278,7 +278,12 @@ pub fn query(index: &mut dyn Index, users: &Vec<String>, threshold: usize, order
             }
             editor_names.truncate(editor_names.len() - 2);
             match order {
-                Order::None => println!("{}: {} ({})", page_name, editor_count, editor_names),
+                Order::None => {
+                    match write!(writer, "{}: {} ({})\n", page_name, editor_count, editor_names) {
+                        Ok(()) => (),
+                        Err(_) => (), // ignore output error, but give up
+                    }
+                },
                 _ => pages.push(Page {
                     page_name: page_name.clone(),
                     editor_count: editor_count,
@@ -344,7 +349,10 @@ pub fn query(index: &mut dyn Index, users: &Vec<String>, threshold: usize, order
                     }
                 });
                 for page in pages {
-                    println!("{}: {} ({})", page.page_name, page.editor_count, page.editor_names)
+                    match write!(writer, "{}: {} ({})\n", page.page_name, page.editor_count, page.editor_names) {
+                        Ok(()) => (),
+                        Err(_) => break, // ignore output error, but give up
+                    }
                 }
             }
         }
@@ -357,10 +365,11 @@ struct AppState {
 }
 
 #[get("/")]
-async fn serve_index(data: Data<AppState>) -> WebResult<NamedFile> {
+async fn serve_index(_data: Data<AppState>) -> WebResult<NamedFile> {
     Ok(NamedFile::open("static/index.htm")?)
 }
 
+#[allow(non_snake_case)]
 #[derive(Serialize)]
 struct BadgeResponse {
     label: String,
@@ -369,7 +378,7 @@ struct BadgeResponse {
 }
 
 #[get("/badge")]
-async fn serve_badge(data: Data<AppState>) -> WebResult<Json<BadgeResponse>> {
+async fn serve_badge(_data: Data<AppState>) -> WebResult<Json<BadgeResponse>> {
     Ok(Json(BadgeResponse {
         label: "socksfinder".to_string(),
         message: version().to_string(),
@@ -378,14 +387,14 @@ async fn serve_badge(data: Data<AppState>) -> WebResult<Json<BadgeResponse>> {
 }
 
 #[get("/query/{users}")]
-async fn serve_query(info: Path<String>, data: Data<AppState>) -> impl Responder {
+async fn serve_query(info: Path<String>, _data: Data<AppState>) -> impl Responder {
     let users: Vec<&str> = info.split('&').collect();
     // TODO modify the query() function to write to a Write instead of stdout
     HttpResponse::Ok().body(format!("query({})\n\n", users.join(", ")))
 }
 
 #[get("/version")]
-async fn serve_version(data: Data<AppState>) -> impl Responder {
+async fn serve_version(_data: Data<AppState>) -> impl Responder {
     HttpResponse::Ok().body(format!("Running socksfinder v{}", version()))
 }
 
@@ -395,7 +404,7 @@ pub async fn serve(index: &mut dyn Index, hostname: String, port: u16) -> std::i
     HttpServer::new(move || {
         App::new()
             .data(AppState {
-        })
+            })
             .service(serve_index)
             .service(serve_badge)
             .service(serve_query)

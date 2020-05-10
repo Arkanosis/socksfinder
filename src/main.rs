@@ -83,7 +83,9 @@ fn main() {
                 process::exit(1);
             });
             let mut buffered_input = BufReader::new(input);
-            if socksfinder::query(&mut buffered_input, &args.arg_user, if args.flag_threshold != 0 { args.flag_threshold } else { args.arg_user.len() }, args.flag_order, args.flag_cooccurrences).is_err() {
+            let mut output = std::io::stdout();
+            if socksfinder::query(&mut buffered_input, &mut output, &args.arg_user, if args.flag_threshold != 0 { args.flag_threshold } else { args.arg_user.len() }, args.flag_order, args.flag_cooccurrences).is_err() ||
+               output.flush().is_err() {
                 process::exit(1);
             }
         } else if args.cmd_serve {
