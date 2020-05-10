@@ -247,8 +247,10 @@ pub fn query(index: &mut dyn Index, writer: &mut dyn Write, users: &Vec<String>,
     } else {
         HashMap::new()
     };
+    let mut list_count = lists.len();
     let mut pages = Vec::new();
-    while !heap.is_empty() {
+    while !heap.is_empty() &&
+          list_count >= threshold {
         let Reverse(current_page_offset) = heap.pop().unwrap();
         let mut editor_count = 0;
         for list in &mut lists {
@@ -258,6 +260,8 @@ pub fn query(index: &mut dyn Index, writer: &mut dyn Write, users: &Vec<String>,
                 if list.position < list.page_offsets.len() - 1 {
                     list.position += 1;
                     heap.push(Reverse(list.page_offsets[list.position]));
+                } else {
+                    list_count -= 1;
                 }
             }
         }
