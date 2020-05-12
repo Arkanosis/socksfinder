@@ -6,13 +6,31 @@
     <meta http-equiv="Content-Language" content="en" />
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rev="made" href="mailto:jroquet@arkanosis.net" />
+    <style>
+      * {
+        color: #212529;
+      }
+      a {
+        color: #24478f;
+        text-decoration: none;
+      }
+      a:hover {
+        text-decoration: underline;
+      }
+      header, footer {
+        display: flex;
+        flex-wrap: wrap;
+        width: 100%;
+        background-color: #eaecf0;
+      }
+    </style>
   </head>
-  <body>
+  <body style="margin: 0; padding: 0;">
     <header>
-      <img src="logo.svg" alt="socksfinder logo" width="140" height="140" style="float: left; padding-right: 20px;">
-      <div style="height: 140px; margin-left: 120px; vertical-align: middle;"><h1 style="padding-top: 40px; font-size: 60px; line-heigth: 100%;">socksfinder</h1></div>
+      <img src="logo.svg" alt="socksfinder logo" width="120" height="120" style="padding: 10px;">
+      <div style="height: 120px; margin-left: 10px; padding: 10px;"><h1 style="font-size: 50px;">socksfinder</h1></div>
     </header>
-    <main>
+    <main style="padding: 10px">
       <p>
         Web service coming soon…<br />
         Until then, please use <a href="https://github.com/Arkanosis/socksfinder">the command line version</a>.
@@ -22,10 +40,12 @@
         You can get an idea of how fast it will be <a href="/query?users=Arkanosis,Arktest,Arkbot&threshold=2&order=Count_Decreasing">there</a>.
         But be warned: it's not stable yet.
       </p>
-
+      <p style="position: absolute; bottom: 40px; right: 0;">
+        socksfinder v0.6.0-dev (index 20200501)
+      </p>
     </main>
     <footer style="position: absolute; bottom:0;">
-      <p>
+      <p style="width: 100%; text-align: center;">
         Made by <a href="https://meta.wikimedia.org/wiki/User:Arkanosis">Arkanosis</a>.
         Code available <a href="https://github.com/Arkanosis/socksfinder">on GitHub</a> under the <a href="https://raw.githubusercontent.com/Arkanosis/socksfinder/master/LICENSE">the ISC license</a>.
         Hosted on <a href="https://wikitech.wikimedia.org/wiki/Portal:Toolforge">Toolforge</a> by <a href="https://wikitech.wikimedia.org/wiki/Help:Cloud_Services_Introduction">Wikimedia Cloud Services</a>.
