@@ -76,10 +76,10 @@ enum Tag {
 #[derive(Deserialize)]
 #[derive(PartialEq)]
 pub enum Order {
-    Alphabetical,
-    Count_Decreasing,
-    Count_Increasing,
-    None,
+    alphabetical,
+    count_decreasing,
+    count_increasing,
+    none,
 }
 
 const SF_IDENTIFIER_LENGTH: usize = 2;
@@ -219,7 +219,7 @@ fn read_index_header(index: &mut dyn Index) -> Result<(u64, u64), ()> {
     Ok((fst_start_offset as u64, fst_end_offset))
 }
 
-pub fn query(index: &mut dyn Index, writer: &mut dyn Write, users: &Vec<String>, threshold: usize, order: Order, show_cooccurrences: bool) -> Result<(), ()> {
+pub fn query(index: &mut dyn Index, writer: &mut dyn Write, users: &Vec<String>, threshold: usize, order: Order, show_cooccurrences: bool, try_format: bool) -> Result<(), ()> {
     // TODO sort and uniquify users
     let (fst_start_offset, fst_end_offset) = read_index_header(index)?;
     index.seek(SeekFrom::Start(fst_start_offset)).unwrap();
@@ -299,7 +299,7 @@ pub fn query(index: &mut dyn Index, writer: &mut dyn Write, users: &Vec<String>,
             }
             editor_names.truncate(editor_names.len() - 2);
             match order {
-                Order::None => {
+                Order::none => {
                     match write!(writer, "{}: {} ({})\n", page_name, editor_count, editor_names) {
                         Ok(()) => (),
                         Err(_) => (), // ignore output error, but give up
@@ -317,9 +317,9 @@ pub fn query(index: &mut dyn Index, writer: &mut dyn Write, users: &Vec<String>,
     }
     if show_cooccurrences {
         let mut sorted_users = users.clone();
-        if order != Order::None {
+        if order != Order::none {
             sorted_users.sort_unstable_by(|first_user, second_user| {
-                if order == Order::Alphabetical {
+                if order == Order::alphabetical {
                     first_user.cmp(&second_user)
                 } else {
                     let total = |user: &String| {
@@ -331,7 +331,7 @@ pub fn query(index: &mut dyn Index, writer: &mut dyn Write, users: &Vec<String>,
                         }
                         sum
                     };
-                    if order == Order::Count_Decreasing {
+                    if order == Order::count_decreasing {
                         total(second_user).cmp(&total(first_user))
                     } else {
                         total(first_user).cmp(&total(second_user))
@@ -356,16 +356,23 @@ pub fn query(index: &mut dyn Index, writer: &mut dyn Write, users: &Vec<String>,
             }
             table.add_row(Row::new(row));
         }
-        table.printstd();
+        if try_format {
+            table.printstd();
+        } else {
+            match table.print(writer) {
+                Ok(_) => (),
+                Err(_) => (), // ignore output error
+            }
+        }
     } else {
         match order {
-            Order::None => (),
+            Order::none => (),
             _ => {
                 pages.sort_unstable_by(|first_page, second_page| {
                     match order {
-                        Order::Alphabetical => first_page.page_name.cmp(&second_page.page_name),
-                        Order::Count_Decreasing => second_page.editor_count.cmp(&first_page.editor_count),
-                        Order::Count_Increasing => first_page.editor_count.cmp(&second_page.editor_count),
+                        Order::alphabetical => first_page.page_name.cmp(&second_page.page_name),
+                        Order::count_decreasing => second_page.editor_count.cmp(&first_page.editor_count),
+                        Order::count_increasing => first_page.editor_count.cmp(&second_page.editor_count),
                         _ => unreachable!()
                     }
                 });
@@ -414,6 +421,7 @@ async fn serve_logo(_data: Data<AppState>) -> WebResult<NamedFile> {
 
 #[derive(Deserialize)]
 struct QueryRequest {
+    cooccurrences: Option<bool>,
     users: String,
     threshold: Option<usize>,
     order: Option<Order>,
@@ -424,7 +432,10 @@ async fn serve_query(query_request: Query<QueryRequest>, data: Data<AppState>) -
     let users = query_request.users.split(',').map(|user| user.to_string()).collect();
     let mut cursor = Cursor::new(&*data.index);
     let mut response = vec![];
-    query(&mut cursor, &mut response, &users, query_request.threshold.unwrap_or(users.len()), query_request.order.unwrap_or(Order::None), false);
+    match query(&mut cursor, &mut response, &users, query_request.threshold.unwrap_or(users.len()), query_request.order.unwrap_or(Order::none), query_request.cooccurrences.unwrap_or(false), false) {
+        Ok(()) => (),
+        Err(()) => response = b"Error while trying to answer query :'(".to_vec(),
+    }
     HttpResponse::Ok().set(ContentType(TEXT_PLAIN_UTF_8)).body(response)
 }
 
