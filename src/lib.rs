@@ -20,7 +20,10 @@ use byteorder::{
     WriteBytesExt,
 };
 
-use fst::MapBuilder;
+use fst::{
+    MapBuilder,
+    Streamer,
+};
 
 use prettytable::{
     Cell,
@@ -184,8 +187,7 @@ struct Page {
     editor_names: String,
 }
 
-pub fn query(index: &mut dyn Index, writer: &mut dyn Write, users: &Vec<String>, threshold: usize, order: Order, show_cooccurrences: bool) -> Result<(), ()> {
-    // TODO sort and uniquify users
+fn read_index_header(index: &mut dyn Index) -> Result<(u64, u64), ()> {
     let mut identifier_bytes = [0u8; SF_IDENTIFIER_LENGTH];
     match index.read(&mut identifier_bytes) {
         Ok(length) => {
@@ -214,8 +216,14 @@ pub fn query(index: &mut dyn Index, writer: &mut dyn Write, users: &Vec<String>,
     }
     let fst_end_offset = index.seek(SeekFrom::End(-4)).unwrap();
     let fst_start_offset = index.read_u32::<byteorder::LittleEndian>().unwrap();
-    index.seek(SeekFrom::Start(fst_start_offset as u64)).unwrap();
-    let mut fst_reader = index.take(fst_end_offset - fst_start_offset as u64);
+    Ok((fst_start_offset as u64, fst_end_offset))
+}
+
+pub fn query(index: &mut dyn Index, writer: &mut dyn Write, users: &Vec<String>, threshold: usize, order: Order, show_cooccurrences: bool) -> Result<(), ()> {
+    // TODO sort and uniquify users
+    let (fst_start_offset, fst_end_offset) = read_index_header(index)?;
+    index.seek(SeekFrom::Start(fst_start_offset)).unwrap();
+    let mut fst_reader = index.take(fst_end_offset - fst_start_offset);
     let mut fst_bytes = vec![];
     fst_reader.read_to_end(&mut fst_bytes).unwrap();
     let fst = fst::Map::from_bytes(fst_bytes).unwrap();
@@ -449,4 +457,33 @@ pub async fn serve(mut index: File, hostname: String, port: u16) -> std::io::Res
         .bind(format!("{}:{}", hostname, port))?
         .run()
         .await
+}
+
+pub fn stats(index: &mut dyn Index) -> Result<(), ()> {
+    let (fst_start_offset, fst_end_offset) = read_index_header(index)?;
+    index.seek(SeekFrom::Start(fst_start_offset)).unwrap();
+    let mut fst_reader = index.take(fst_end_offset - fst_start_offset);
+    let mut fst_bytes = vec![];
+    fst_reader.read_to_end(&mut fst_bytes).unwrap();
+    let fst = fst::Map::from_bytes(fst_bytes).unwrap();
+    let mut stream = fst.values();
+    let mut user_contribs_offset = fst_start_offset;
+    while let Some(value) = stream.next() {
+        let page_offsets_offset = value >> 32;
+        if page_offsets_offset < user_contribs_offset {
+            user_contribs_offset = page_offsets_offset;
+        }
+    }
+    // TODO additional statistics:
+    // - number of pages
+    // - number of users
+    // - min, max, avg user_edit_count
+    // - min, max, avg page_edit_count
+    // - min, max, avg page_editors
+    println!("Index format version number: {}", SF_VERSION);
+    println!("Page names start offset: 4");
+    println!("User contribs offset: {}", user_contribs_offset);
+    println!("FST offset: {}", fst_start_offset);
+    println!("Footer offset: {}", fst_end_offset);
+    Ok(())
 }

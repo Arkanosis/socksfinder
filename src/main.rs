@@ -15,6 +15,7 @@ const USAGE: &str = "
 Usage: socksfinder build <index>
        socksfinder query [--cooccurrences | --threshold=<threshold>] [--order=<order>] <index> <user>...
        socksfinder serve [--hostname=<hostname>] [--port=<port>] <index>
+       socksfinder stats <index>
        socksfinder -h | --help
        socksfinder --version
 
@@ -22,6 +23,7 @@ Commands:
     build                    Build an index from a MediaWiki XML dump (read on the standard input).
     query                    Search pages modified by several users in the index.
     serve                    Start a small HTTP server to serve the index.
+    stats                    Display statistics about the index.
 
 Arguments:
     index                    Index built from a MediaWiki dump.
@@ -43,6 +45,7 @@ struct Args {
     cmd_build: bool,
     cmd_query: bool,
     cmd_serve: bool,
+    cmd_stats: bool,
     arg_index: String,
     arg_user: Vec<String>,
     flag_cooccurrences: bool,
@@ -94,6 +97,15 @@ fn main() {
                 process::exit(1);
             });
             if socksfinder::serve(input, args.flag_hostname, args.flag_port).is_err() {
+                process::exit(1);
+            }
+        } else if args.cmd_stats {
+            let input = File::open(&args.arg_index).unwrap_or_else(|cause| {
+                eprintln!("socksfinder: can't open index: {}: {}", &args.arg_index, &cause);
+                process::exit(1);
+            });
+            let mut buffered_input = BufReader::new(input);
+            if socksfinder::stats(&mut buffered_input).is_err() {
                 process::exit(1);
             }
         }

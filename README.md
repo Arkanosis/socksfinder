@@ -10,6 +10,7 @@
 Usage: socksfinder build <index>
        socksfinder query [--cooccurrences | --threshold=<threshold>] [--order=<order>] <index> <user>...
        socksfinder serve [--hostname=<hostname>] [--port=<port>] <index>
+       socksfinder stats <index>
        socksfinder -h | --help
        socksfinder --version
 
@@ -17,6 +18,7 @@ Commands:
     build                    Build an index from a MediaWiki XML dump (read on the standard input).
     query                    Search pages modified by several users in the index.
     serve                    Start a small HTTP server to serve the index.
+    stats                    Display statistics about the index.
 
 Arguments:
     index                    Index built from a MediaWiki dump.
