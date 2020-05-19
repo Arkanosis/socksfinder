@@ -107,6 +107,7 @@ pub fn build(reader: &mut dyn BufRead, writer: &mut dyn Write) -> Result<(), ()>
             Ok(Event::Start(ref event)) => {
                 match event.name() {
                     b"title" => current_tag = Tag::Title,
+                    b"ip" => current_tag = Tag::UserName,
                     b"username" => current_tag = Tag::UserName,
                     _ => current_tag = Tag::Other,
                 }
