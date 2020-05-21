@@ -20,6 +20,8 @@ use byteorder::{
     WriteBytesExt,
 };
 
+use number_prefix::NumberPrefix;
+
 use fst::{
     MapBuilder,
     Streamer,
@@ -471,6 +473,13 @@ pub async fn serve(mut index: File, hostname: String, port: u16) -> std::io::Res
         .await
 }
 
+fn print_size(label: &str, size: u64) {
+    match NumberPrefix::binary(size as f64) {
+        NumberPrefix::Standalone(number) => println!("{}: {} B", label, number.round()),
+        NumberPrefix::Prefixed(prefix, number) => println!("{}: {} {}B", label, number.round(), prefix),
+    }
+}
+
 pub fn stats(index: &mut dyn Index) -> Result<(), ()> {
     let (fst_start_offset, fst_end_offset) = read_index_header(index)?;
     index.seek(SeekFrom::Start(fst_start_offset)).unwrap();
@@ -480,22 +489,36 @@ pub fn stats(index: &mut dyn Index) -> Result<(), ()> {
     let fst = fst::Map::from_bytes(fst_bytes).unwrap();
     let mut stream = fst.values();
     let mut user_contribs_offset = fst_start_offset;
+    let mut edit_count_range_counts = vec![0; 10];
     while let Some(value) = stream.next() {
+        let edit_count = value & 0xFF_FF_FF_FF;
+        if edit_count > 256 {
+            edit_count_range_counts[9] += 1;
+        } else {
+            edit_count_range_counts[(edit_count as f64).log2().ceil() as usize] += 1;
+        }
         let page_offsets_offset = value >> 32;
         if page_offsets_offset < user_contribs_offset {
             user_contribs_offset = page_offsets_offset;
         }
     }
-    // TODO additional statistics:
-    // - number of pages
-    // - number of users
-    // - min, max, avg user_edit_count
-    // - min, max, avg page_edit_count
-    // - min, max, avg page_editors
+    println!("==[ Header info ]==");
     println!("Index format version number: {}", SF_VERSION);
-    println!("Page names start offset: 4");
-    println!("User contribs offset: {}", user_contribs_offset);
-    println!("FST offset: {}", fst_start_offset);
-    println!("Footer offset: {}", fst_end_offset);
+    println!("==[ Section offsets ]==");
+    println!("Page names: 4");
+    println!("User contribs: {}", user_contribs_offset);
+    println!("FST: {}", fst_start_offset);
+    println!("Footer: {}", fst_end_offset);
+    println!("==[ Section sizes ]==");
+    print_size("Header", 4);
+    print_size("Page names", user_contribs_offset - 4);
+    print_size("User contribs", fst_start_offset - user_contribs_offset);
+    print_size("FST", fst_end_offset - fst_start_offset);
+    print_size("Footer", 4);
+    println!("==[ Contrib list length ]==");
+    for bin in 0..9 {
+        println!("]{};{}]: {}", if bin == 0 { 0 } else { 1 << (bin - 1) }, 1 << bin, edit_count_range_counts[bin]);
+    }
+    println!("]256;+∞[ : {}", edit_count_range_counts[9]);
     Ok(())
 }
