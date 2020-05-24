@@ -229,7 +229,7 @@ pub fn query(index: &mut dyn Index, writer: &mut dyn Write, users: &Vec<String>,
     let mut fst_reader = index.take(fst_end_offset - fst_start_offset);
     let mut fst_bytes = vec![];
     fst_reader.read_to_end(&mut fst_bytes).unwrap();
-    let fst = fst::Map::from_bytes(fst_bytes).unwrap();
+    let fst = fst::Map::new(fst_bytes).unwrap();
     let mut lists = vec![];
     let mut min_page_offsets = HashSet::with_capacity(users.len());
     for user in users {
@@ -486,7 +486,7 @@ pub fn stats(index: &mut dyn Index) -> Result<(), ()> {
     let mut fst_reader = index.take(fst_end_offset - fst_start_offset);
     let mut fst_bytes = vec![];
     fst_reader.read_to_end(&mut fst_bytes).unwrap();
-    let fst = fst::Map::from_bytes(fst_bytes).unwrap();
+    let fst = fst::Map::new(fst_bytes).unwrap();
     let mut stream = fst.values();
     let mut user_contribs_offset = fst_start_offset;
     let mut edit_count_range_counts = vec![0; 10];
