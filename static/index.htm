@@ -23,6 +23,18 @@
         width: 100%;
         background-color: #eaecf0;
       }
+      form {
+        padding: 15px;
+      }
+      .warning {
+        padding: 15px;
+        background-color: #fcf8e3;
+        border-color: #faebcc;
+        border-radius: 4px;
+      }
+      .warning, .warning strong {
+        color: #8a6d3b;
+      }
     </style>
   </head>
   <body style="margin: 0; padding: 0;">
@@ -31,20 +43,67 @@
       <div style="height: 120px; margin-left: 10px; padding: 10px;"><h1 style="font-size: 50px;">socksfinder</h1></div>
     </header>
     <main style="padding: 10px">
-      <p>
-        Web service coming soon…<br />
-        Until then, please use <a href="https://github.com/Arkanosis/socksfinder">the command line version</a>.
+      <p class="warning">
+        <strong>Warning!</strong> this tool has not reached version 1.0 yet. The UI lacks some polish and has not been tested much.
       </p>
-      <p style="font-size: small;">
-        Pssst…
-        You can get an idea of how fast it will be <a href="/query?users=Arkanosis,Arktest,Arkbot&threshold=2&order=count_decreasing">here</a> or of what a cooccurrence matrix will look like <a href="/query?users=Arkanosis,Arktest,Arkbot&threshold=2&order=count_decreasing&cooccurrences=true">there</a>.
-        But be warned: it's not stable yet.
-      </p>
-      <form action="/query">
-        <label for="users">Users (comma-separated):</label>
-        <input id="users" type="text" name="users">
-        <input type="submit" value="Submit">
-      </form>
+      <section>
+        <h2>List of pages modified by one or several users</h2>
+        <form action="/query">
+          <div>
+            <label for="users">Users (comma-separated):</label>
+            <input id="users" type="text" name="users">
+          </div>
+          <div>
+            <label for="threshold">Get only pages modified by at least this many users:</label>
+            <input id="threshold" type="number" name="threshold" value="2">
+          </div>
+          <div>
+            <p style="display: inline;">Order pages by:</p>
+            <input type="radio" id="order_none" name="order" value="none" checked>
+            <label for="order_none">no specific order</label>
+            <input type="radio" id="order_alphabetical" name="order" value="alphabetical">
+            <label for="order_alphabetical">alphabetical</label>
+            <input type="radio" id="order_count_increasing" name="order" value="count_increasing">
+            <label for="order_count_increasing">count, increasing</label>
+            <input type="radio" id="order_count_decreasing" name="order" value="count_decreasing">
+            <label for="order_count_decreasing">count, decreasing</label>
+          </div>
+          <input type="submit" value="Submit">
+        </form>
+      </section>
+      <section>
+        <h2>Cooccurrence matrix of users on all pages</h2>
+        <form action="/query">
+          <div>
+            <label for="users">Users (comma-separated):</label>
+            <input id="users" type="text" name="users">
+          </div>
+          <div>
+            <p style="display: inline;">Order:</p>
+            <input type="radio" id="order_none" name="order" value="none" checked>
+            <label for="order_none">no specific order</label>
+            <input type="radio" id="order_alphabetical" name="order" value="alphabetical">
+            <label for="order_alphabetical">alphabetical</label>
+            <input type="radio" id="order_count_increasing" name="order" value="count_increasing">
+            <label for="order_count_increasing">count, increasing</label>
+            <input type="radio" id="order_count_decreasing" name="order" value="count_decreasing">
+            <label for="order_count_decreasing">count, decreasing</label>
+          </div>
+          <input type="hidden" name="cooccurrences" value="true">
+          <input type="submit" value="Submit">
+        </form>
+      </section>
+      <aside>
+        <h2>Similar tools</h2>
+        <p>There are several similar tools available. In some cases, they may serve your needs better than socksfinder:</p>
+        <ul>
+          <li><a href="https://tools.wmflabs.org/sigma/editorinteract.py">Editor Interaction Analyzer</a></li>
+          <li><a href="https://interaction-timeline.toolforge.org">Interaction Timeline</a></li>
+          <li><a href="https://intersect-contribs.toolforge.org">Intersect Contribs</a></li>
+          <li><a href="https://github.com/Arkanosis/socksfinder">socksfinder</a> on the command line</li>
+        </ul>
+        <p>If you don't know which tool is better for you, have a look on <a href="/comparison">the comparison table</a>.</p>
+      </aside>
       <p style="position: absolute; bottom: 40px; right: 0;">
         socksfinder v0.6.0-dev (frwiki-20200520)
       </p>

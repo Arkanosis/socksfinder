@@ -417,6 +417,11 @@ async fn serve_badge(_data: Data<AppState>) -> WebResult<Json<BadgeResponse>> {
     }))
 }
 
+#[get("/comparison")]
+async fn serve_comparison(_data: Data<AppState>) -> WebResult<NamedFile> {
+    Ok(NamedFile::open("static/comparison.htm")?)
+}
+
 #[get("/logo.svg")]
 async fn serve_logo(_data: Data<AppState>) -> WebResult<NamedFile> {
     Ok(NamedFile::open("static/logo.svg")?)
@@ -464,6 +469,7 @@ pub async fn serve(mut index: File, hostname: String, port: u16) -> std::io::Res
             })
             .service(serve_index)
             .service(serve_badge)
+            .service(serve_comparison)
             .service(serve_logo)
             .service(serve_query)
             .service(serve_version)
