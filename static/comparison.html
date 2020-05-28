@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>socksfinder</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta http-equiv="Content-Language" content="en" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rev="made" href="mailto:jroquet@arkanosis.net" />
+    <style>
+      * {
+        color: #212529;
+      }
+      a {
+        color: #24478f;
+        text-decoration: none;
+      }
+      a:hover {
+        text-decoration: underline;
+      }
+      header, footer {
+        display: flex;
+        flex-wrap: wrap;
+        width: 100%;
+        background-color: #eaecf0;
+      }
+      th, td {
+          border-bottom: 1px solid #ddd;
+      }
+      tr:hover {
+          background-color: #f5f5f5;
+      }
+    </style>
+  </head>
+  <body style="margin: 0; padding: 0;">
+    <header>
+      <img src="logo.svg" alt="socksfinder logo" width="120" height="120" style="padding: 10px;">
+      <div style="height: 120px; margin-left: 10px; padding: 10px;"><h1 style="font-size: 50px;">socksfinder</h1></div>
+    </header>
+    <main style="padding: 10px">
+      <section>
+        <h2>Comparison with similar tools</h2>
+        <p>
+          Other tools share the same purpose as socksfinder and may be better by some measurements.
+          Here is a quick comparison.
+          Feel free to <a href="https://meta.wikimedia.org/wiki/User_talk:Arkanosis">contact me</a> if you want to correct an error or add another tool to the comparison.
+        </p>
+        <table style="text-align: left;">
+          <thead>
+            <tr>
+              <th>Tool</th>
+              <th>Editor Interaction Analyzer</th>
+              <th>Interaction Timeline</th>
+              <th>Intersect Contribs</th>
+              <th>socksfinder (web)</th>
+              <th>socksfinder (<abbr title="command-line interface">cli</abbr>)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th>Available wikis</th>
+              <td>All WMF wikis</td>
+              <td>All WMF wikis</td>
+              <td>All WMF wikis</td>
+              <td>Only frwiki<br>(for now)</td>
+              <td>Any wiki<br>(you need to build the index)</td>
+            </tr>
+            <tr>
+              <th>Update frequency</th>
+              <td>Almost realtime</td>
+              <td>Almost realtime</td>
+              <td>Almost realtime</td>
+              <td>Twice a month</td>
+              <td>N/A<br>(you build the index yourself)</td>
+            </tr>
+            <tr>
+              <th>Users per query</th>
+              <td>~7 max</td>
+              <td>2 max</td>
+              <td>8 max</td>
+              <td>No limit</td>
+              <td>No limit</td>
+            </tr>
+            </tr>
+              <th>Threshold selection</th>
+              <td>No</td>
+              <td>No<br>(only 2 users anyway)</td>
+              <td>No<br>(always 2)</td>
+              <td>Yes</td>
+              <td>Yes</td>
+            </tr>
+            <tr>
+              <th>Date range selection</th>
+              <td>Yes</td>
+              <td>Yes</td>
+              <td>No</td>
+              <td>No</td>
+              <td>No</td>
+            </tr>
+            <tr>
+              <th>Namespace selection</th>
+              <td>Yes</td>
+              <td>No</td>
+              <td>Yes</td>
+              <td>No<br>(for now)</td>
+              <td>You can <code>| grep $NAMESPACE</code></td>
+            </tr>
+              <th>Sorting options</th>
+              <td>By minimum time between edits or by date</td>
+              <td>Only by date</td>
+              <td>Alphabetical or number of editors</td>
+              <td>Alphabetical, number of editors or not sorted</td>
+              <td>Alphabetical, number of editors or not sorted</td>
+            <tr>
+            </tr>
+              <th>Number of edits per page</th>
+              <td>Yes</td>
+              <td>No</td>
+              <td>Yes</td>
+              <td>No</td>
+              <td>No</td>
+            </tr>
+            </tr>
+              <th>List of editors per page</th>
+              <td>Yes<br>(with number of edits by editor)</td>
+              <td>No</td>
+              <td>No</td>
+              <td>Yes</td>
+              <td>Yes</td>
+            </tr>
+            </tr>
+              <th>Timeline of edits</th>
+              <td>Yes</td>
+              <td>Yes</td>
+              <td>No</td>
+              <td>No</td>
+              <td>No</td>
+            </tr>
+            </tr>
+              <th>Co-occurrences matrix</th>
+              <td>No</td>
+              <td>No</td>
+              <td>No</td>
+              <td>Yes</td>
+              <td>Yes</td>
+            </tr>
+            </tr>
+              <th>User names completion</th>
+              <td>No</td>
+              <td>Yes</td>
+              <td>No</td>
+              <td>No</td>
+              <td>No</td>
+            </tr>
+            <tr>
+              <th>Speed</th>
+              <td>Very slow</td>
+              <td>Slow</td>
+              <td>Slow</td>
+              <td>Fast</td>
+              <td>Fast</td>
+            </tr>
+            <tr>
+              <th>Stability</th>
+              <td>Often down</td>
+              <td>Fine</td>
+              <td>Fine</td>
+              <td>Fine</td>
+              <td>N/A<br>(you run it yourself)</td>
+            </tr>
+            <tr>
+              <th>Address</th>
+              <td><a href="https://tools.wmflabs.org/sigma/editorinteract.py">https://tools.wmflabs.org/sigma/editorinteract.py</a></td>
+              <td><a href="https://interaction-timeline.toolforge.org">https://interaction-timeline.toolforge.org</a></td>
+              <td><a href="https://intersect-contribs.toolforge.org">https://intersect-contribs.toolforge.org</a></td>
+              <td><a href="https://socksfinder.toolforge.org">https://socksfinder.toolforge.org</a></td>
+              <td><a href="https://github.com/Arkanosis/socksfinder">https://github.com/Arkanosis/socksfinder</a> (sources)<br><a href="https://arkanosis.fr/wikipedia/socksfinder/0.6.0-dev/">https://arkanosis.fr/wikipedia/socksfinder/0.6.0-dev/</a> (pre-compiled binary and pre-built index)</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+    </main>
+    <footer style="position: absolute; bottom:0;">
+      <p style="width: 100%; text-align: center;">
+        Made by <a href="https://meta.wikimedia.org/wiki/User:Arkanosis">Arkanosis</a>.
+        Code available <a href="https://github.com/Arkanosis/socksfinder">on GitHub</a> under the <a href="https://raw.githubusercontent.com/Arkanosis/socksfinder/master/LICENSE">the ISC license</a>.
+        Hosted on <a href="https://wikitech.wikimedia.org/wiki/Portal:Toolforge">Toolforge</a> by <a href="https://wikitech.wikimedia.org/wiki/Help:Cloud_Services_Introduction">Wikimedia Cloud Services</a>.
+      </p>
+    </footer>
+  </body>
+</html>
