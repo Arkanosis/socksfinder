@@ -223,7 +223,18 @@ fn read_index_header(index: &mut dyn Index) -> Result<(u64, u64), ()> {
 }
 
 pub fn query(index: &mut dyn Index, writer: &mut dyn Write, users: &Vec<String>, threshold: usize, order: Order, show_cooccurrences: bool, try_format: bool) -> Result<(), ()> {
-    // TODO sort and uniquify users
+    let users: &Vec<String> = {
+        let mut unique_users = HashSet::with_capacity(users.len());
+        for user in users {
+            unique_users.insert(user.trim().to_string().clone());
+        }
+        &unique_users.into_iter().collect()
+    };
+    let threshold = if threshold == 0 {
+        users.len()
+    } else {
+        threshold
+    };
     let (fst_start_offset, fst_end_offset) = read_index_header(index)?;
     index.seek(SeekFrom::Start(fst_start_offset)).unwrap();
     let mut fst_reader = index.take(fst_end_offset - fst_start_offset);
@@ -440,7 +451,7 @@ async fn serve_query(query_request: Query<QueryRequest>, data: Data<AppState>) -
     let users = query_request.users.split(',').map(|user| user.to_string()).collect();
     let mut cursor = Cursor::new(&*data.index);
     let mut response = vec![];
-    match query(&mut cursor, &mut response, &users, query_request.threshold.unwrap_or(users.len()), query_request.order.unwrap_or(Order::none), query_request.cooccurrences.unwrap_or(false), false) {
+    match query(&mut cursor, &mut response, &users, query_request.threshold.unwrap_or(0), query_request.order.unwrap_or(Order::none), query_request.cooccurrences.unwrap_or(false), false) {
         Ok(()) => (),
         Err(()) => response = b"Error while trying to answer query :'(".to_vec(),
     }
