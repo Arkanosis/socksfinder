@@ -45,7 +45,7 @@ Run `cargo build --release` in your working copy.
 
 Building an index can take quite a while and eat a significant amount of memory
 (depending on the size of the dump). For the French Wikipedia, it takes about
-45 minutes with a fast internet access, and consumes close to 500 MiB of RAM.
+45 minutes with a fast internet access, and consumes close to 1.5 GiB of RAM.
 
 ```console
 $ curl -s "https://dumps.wikimedia.org/frwiki/latest/frwiki-latest-stub-meta-history.xml.gz" |
@@ -56,8 +56,8 @@ $ curl -s "https://dumps.wikimedia.org/frwiki/latest/frwiki-latest-stub-meta-his
 This only needs to be done once, though, and the resulting index can be
 redistributed to other users who don't have a fast enough internet access or
 a powerful enough computer. For the French Wikipedia, the index is almost
-600 MiB big and can be compressed quite efficiently for distribution (less
-than 300 MiB when compressed using `gzip --best`).
+700 MiB big and can be compressed quite efficiently for distribution (less
+than 400 MiB when compressed using `gzip --best`).
 
 ### Searching for pages modified by editors from a list
 
