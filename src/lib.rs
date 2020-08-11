@@ -258,9 +258,9 @@ pub fn query(index: &mut dyn Index, writer: &mut dyn Write, users: &Vec<String>,
                     page_offsets.push(index.read_u32::<byteorder::LittleEndian>().unwrap());
                 }
                 lists.push(InvertedList {
-                    user: user,
+                    user,
                     position: 0,
-                    page_offsets: page_offsets
+                    page_offsets
                 });
                 min_page_offsets.insert(lists.last().unwrap().page_offsets[0]);
             }
@@ -321,8 +321,8 @@ pub fn query(index: &mut dyn Index, writer: &mut dyn Write, users: &Vec<String>,
                 },
                 _ => pages.push(Page {
                     page_name: page_name.clone(),
-                    editor_count: editor_count,
-                    editor_names: editor_names
+                    editor_count,
+                    editor_names
                 }),
             }
             page_name.clear();
