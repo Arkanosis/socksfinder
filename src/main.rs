@@ -1,4 +1,5 @@
 use std::{
+    fs::File,
     io::{
         BufReader,
         BufWriter,
@@ -8,8 +9,6 @@ use std::{
 };
 
 use serde_derive::Deserialize;
-
-use std::fs::File;
 
 const USAGE: &str = "
 Usage: socksfinder build <index>
