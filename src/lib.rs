@@ -463,7 +463,7 @@ async fn serve_version(_data: Data<AppState>) -> impl Responder {
     HttpResponse::Ok().body(format!("Running socksfinder v{}", version()))
 }
 
-#[actix_rt::main]
+#[actix_web::main]
 pub async fn serve(mut index: File, hostname: String, port: u16) -> std::io::Result<()> {
     println!("Loading index...");
     let mut ram_index = vec![];
