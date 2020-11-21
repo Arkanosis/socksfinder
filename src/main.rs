@@ -35,7 +35,7 @@ Options:
     --order=<order>          Order of results, none can be faster and consume less memory [default: none].
                              Valid orders: none, count_decreasing, count_increasing, alphabetical.
     --port=<port>            Port on which to serve the index [default: 8080].
-    --threshold=<threshold>  Number of different contributors, 0 for all of them [default: 0].
+    --threshold=<threshold>  Number of different editors, 0 for all of them [default: 0].
     --version                Show version.
 ";
 

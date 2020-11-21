@@ -31,7 +31,7 @@ Options:
     --order=<order>          Order of results, none can be faster and consume less memory [default: none].
                              Valid orders: none, count_decreasing, count_increasing, alphabetical.
     --port=<port>            Port on which to serve the index [default: 8080].
-    --threshold=<threshold>  Number of different contributors, 0 for all of them [default: 0].
+    --threshold=<threshold>  Number of different editors, 0 for all of them [default: 0].
     --version                Show version.
 ```
 
@@ -55,7 +55,7 @@ $ curl -s "https://dumps.wikimedia.org/frwiki/latest/frwiki-latest-stub-meta-his
 
 This only needs to be done once, though, and the resulting index can be
 redistributed to other users who don't have a fast enough internet access or
-a powerful enough computer. For the French Wikipedia, the index is almost
+a powerful enough computer. For the French Wikipedia, the index is around
 700 MiB big and can be compressed quite efficiently for distribution (less
 than 400 MiB when compressed using `gzip --best`).
 
@@ -66,7 +66,8 @@ a very limited amount of memory (by today standards, at least), around 20 or
 30 MiB of RAM. It's usually quite fast as well, around 10 to 50 milliseconds
 per user depending on your CPU and the number of unique modified pages, though
 it can take as much as a few seconds when searching for pages modified by
-editors who have modified several hundred thousands of distinct pages.
+editors who have modified several hundred thousands of distinct pages (for 
+even faster performance, see the [server mode](#server-mode) below).
 
 ```console
 $ socksfinder query frwiki-latest.idx Arkanosis Arktest Arkbot
@@ -103,6 +104,35 @@ $ socksfinder query --cooccurrences frwiki-latest.idx Arkanosis Arktest Arkbot
 | Arkbot    | 40        | 3       |        |
 +-----------+-----------+---------+--------+
 ```
+
+### Server mode
+
+socksfinder can be run in server mode, which means it runs a small HTTP server
+to provide an HTML / plain text interface to the same features as when using
+the command line.
+
+```console
+$ socksfinder serve --hostname=localhost --port=8697 frwiki-latest.idx
+```
+
+It can then be used either by opening the HTML interface in a web browser (eg.
+http://localhost:8697 in the example above), or by querying it using an HTTP
+client.
+
+```console
+$ curl 'http://localhost:8697/query?users=Arkanosis,Arktest,Arkbot&coocurrences=true'
+```
+
+Server mode has the following advantages over command line usage:
+ - users don't need to download the program;
+ - users don't need to build or download an index;
+ - users that don't have the time, tools or technical skills can use it;
+ - it's even faster: finding millions of edits can take less than one second depending on your CPU.
+
+It has however the following downsides:
+ - it requires much more memory, about the same as the size of the index (for the French Wikipedia, it requires around 750 MiB of RAM).
+
+An instance of socksfinder is available [on Toolforge](https://socksfinder.toolforge.org/).
 
 ## Contributing and reporting bugs
 

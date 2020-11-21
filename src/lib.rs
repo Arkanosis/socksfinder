@@ -248,7 +248,7 @@ pub fn query(index: &mut dyn Index, writer: &mut dyn Write, users: &Vec<String>,
     for user in users {
         match fst.get(&user) {
             None => {
-                eprintln!("User '{}' does not exist or has no contribution ", user);
+                eprintln!("User '{}' does not exist or has no edits ", user);
                 return Err(());
             },
             Some(value) => {
