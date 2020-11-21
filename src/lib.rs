@@ -230,7 +230,9 @@ pub fn query(index: &mut dyn Index, writer: &mut dyn Write, users: &Vec<String>,
         }
         &unique_users.into_iter().collect()
     };
-    let threshold = if threshold == 0 {
+    let threshold = if show_cooccurrences {
+        0
+    } else if threshold == 0 {
         users.len()
     } else {
         threshold
