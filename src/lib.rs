@@ -62,7 +62,7 @@ use std::{
         SeekFrom,
         Write,
     },
-    sync::Arc,
+    sync::Mutex,
     time::Instant,
 };
 
@@ -405,7 +405,8 @@ pub fn query(index: &mut dyn Index, writer: &mut dyn Write, users: &Vec<String>,
 }
 
 struct AppState {
-    index: Arc<Vec<u8>>,
+    index: String,
+    ram_index: Mutex<Vec<u8>>,
 }
 
 #[get("/")]
@@ -451,7 +452,11 @@ struct QueryRequest {
 #[get("/query")]
 async fn serve_query(query_request: Query<QueryRequest>, data: Data<AppState>) -> impl Responder {
     let users = query_request.users.split(',').map(|user| user.to_string()).collect();
-    let mut cursor = Cursor::new(&*data.index);
+    let ram_index = data.ram_index.lock().unwrap();
+    if ram_index.is_empty() {
+        return HttpResponse::ServiceUnavailable().body("Index not yet available (try again later)\n");
+    }
+    let mut cursor = Cursor::new(&*ram_index);
     let mut response = vec![];
     match query(&mut cursor, &mut response, &users, query_request.threshold.unwrap_or(0), query_request.order.unwrap_or(Order::none), query_request.cooccurrences.unwrap_or(false), false) {
         Ok(()) => (),
@@ -460,31 +465,61 @@ async fn serve_query(query_request: Query<QueryRequest>, data: Data<AppState>) -
     HttpResponse::Ok().set(ContentType(TEXT_PLAIN_UTF_8)).body(response)
 }
 
+fn load_index(data: &Data<AppState>) -> bool {
+    println!("Loading index...");
+    let mut ram_index = vec![];
+    let start = Instant::now();
+    let input = File::open(&data.index);
+    match input {
+        Ok(mut input) => {
+            input.read_to_end(&mut ram_index).unwrap();
+            let duration = start.elapsed();
+            println!("Index loaded in {:?}", duration);
+            let mut app_ram_index = data.ram_index.lock().unwrap();
+            *app_ram_index = ram_index;
+            true
+        },
+        Err(error) => {
+            eprintln!("socksfinder: can't open index: {}: {}", &data.index, &error);
+            false
+        }
+    }
+}
+
+#[get("/reload")]
+async fn serve_reload(data: Data<AppState>) -> impl Responder {
+    if load_index(&data) {
+        HttpResponse::Ok().body(format!("Index reloaded"))
+    } else {
+        HttpResponse::InternalServerError().body(format!("Unable to reload index"))
+    }
+}
+
 #[get("/version")]
 async fn serve_version(_data: Data<AppState>) -> impl Responder {
     HttpResponse::Ok().body(format!("Running socksfinder v{}", version()))
 }
 
 #[actix_web::main]
-pub async fn serve(mut index: File, hostname: String, port: u16) -> std::io::Result<()> {
-    println!("Loading index...");
-    let mut ram_index = vec![];
-    let start = Instant::now();
-    index.read_to_end(&mut ram_index).unwrap();
-    let duration = start.elapsed();
-    println!("Index loaded in {:?}", duration);
-    let ram_index = Arc::new(ram_index);
+pub async fn serve(index: String, hostname: String, port: u16) -> std::io::Result<()> {
+    let data = Data::new(AppState {
+        index: index,
+        ram_index: Mutex::new(vec![]),
+    });
+    let initial_data = data.clone();
+    std::thread::spawn(move || {
+        load_index(&initial_data);
+    });
     println!("Listening on {}:{}...", hostname, port);
     HttpServer::new(move || {
         App::new()
-            .data(AppState {
-                index: Arc::clone(&ram_index),
-            })
+            .app_data(data.clone())
             .service(serve_index)
             .service(serve_badge)
             .service(serve_comparison)
             .service(serve_logo)
             .service(serve_query)
+            .service(serve_reload)
             .service(serve_version)
     })
         .bind(format!("{}:{}", hostname, port))?
