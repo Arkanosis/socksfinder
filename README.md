@@ -142,5 +142,5 @@ Please report bugs and feature requests on [GitHub issues](https://github.com/Ar
 
 ## License
 
-socksfinder is copyright (C) 2020 Jérémie Roquet <jroquet@arkanosis.net> and
-licensed under the ISC license.
+socksfinder is copyright (C) 2020-2022 Jérémie Roquet <jroquet@arkanosis.net>
+and licensed under the ISC license.
