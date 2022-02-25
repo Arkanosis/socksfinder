@@ -462,7 +462,9 @@ async fn serve_query(query_request: Query<QueryRequest>, data: Data<AppState>) -
         Ok(()) => (),
         Err(()) => response = b"Error while trying to answer query :'(".to_vec(),
     }
-    HttpResponse::Ok().set(ContentType(TEXT_PLAIN_UTF_8)).body(response)
+    HttpResponse::Ok()
+        .insert_header(ContentType(TEXT_PLAIN_UTF_8))
+        .body(response)
 }
 
 fn load_index(data: &Data<AppState>) -> bool {
