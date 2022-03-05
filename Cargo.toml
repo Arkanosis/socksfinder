@@ -16,6 +16,7 @@ keywords = ["sock", "puppet", "sockpuppet", "wikimedia", "wikipedia"]
 categories = ["command-line-utilities"]
 
 edition = "2018"
+build = "build.rs"
 
 [dependencies]
 actix-files = "0.6"
@@ -29,3 +30,6 @@ prettytable-rs = "0.8"
 quick-xml = "0.22"
 serde = "1.0"
 serde_derive = "1.0"
+
+[build-dependencies]
+vergen = "6.0"

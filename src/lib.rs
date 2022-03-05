@@ -92,7 +92,11 @@ pub trait Index: BufRead + Seek {}
 impl<T: BufRead + Seek> Index for T {}
 
 pub fn version() -> &'static str {
-    return option_env!("CARGO_PKG_VERSION").unwrap_or("unknown");
+    if env!("CARGO_PKG_VERSION").ends_with("-dev") {
+        concat!(env!("CARGO_PKG_VERSION"), "+", env!("VERGEN_GIT_SHA_SHORT"))
+    } else {
+        env!("CARGO_PKG_VERSION")
+    }
 }
 
 pub fn build(reader: &mut dyn BufRead, writer: &mut dyn Write) -> Result<(), ()> {
