@@ -245,11 +245,15 @@ pub fn query(index: &mut dyn Index, writer: &mut dyn Write, users: &Vec<String>,
     let fst = fst::Map::new(fst_bytes).unwrap();
     let mut lists = vec![];
     let mut min_page_offsets = HashSet::with_capacity(users.len());
+    let mut error = false;
     for user in users {
         match fst.get(&user) {
             None => {
-                eprintln!("User '{}' does not exist or has no edits ", user);
-                return Err(());
+                error = true;
+                match write!(writer, "Error: User '{}' does not exist or has no edits\n", user) {
+                    Ok(()) => (),
+                    Err(_) => (), // ignore output error, but give up
+                }
             },
             Some(value) => {
                 let edit_count = value & 0xFF_FF_FF_FF;
@@ -401,7 +405,11 @@ pub fn query(index: &mut dyn Index, writer: &mut dyn Write, users: &Vec<String>,
             }
         }
     }
-    Ok(())
+    if error {
+        Err(())
+    } else {
+        Ok(())
+    }
 }
 
 struct AppState {
@@ -460,7 +468,7 @@ async fn serve_query(query_request: Query<QueryRequest>, data: Data<AppState>) -
     let mut response = vec![];
     match query(&mut cursor, &mut response, &users, query_request.threshold.unwrap_or(0), query_request.order.unwrap_or(Order::none), query_request.cooccurrences.unwrap_or(false), false) {
         Ok(()) => (),
-        Err(()) => response = b"Error while trying to answer query :'(".to_vec(),
+        Err(()) => (),
     }
     HttpResponse::Ok()
         .insert_header(ContentType(TEXT_PLAIN_UTF_8))
