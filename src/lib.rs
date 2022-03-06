@@ -15,6 +15,8 @@ use actix_web::{
     Result as WebResult,
 };
 
+use askama_actix::Template;
+
 use byteorder::{
     ReadBytesExt,
     WriteBytesExt,
@@ -62,6 +64,7 @@ use std::{
         SeekFrom,
         Write,
     },
+    path::Path,
     sync::Mutex,
     time::Instant,
 };
@@ -416,14 +419,30 @@ pub fn query(index: &mut dyn Index, writer: &mut dyn Write, users: &Vec<String>,
     }
 }
 
+struct RamIndex {
+    name: String,
+    data: Vec<u8>,
+}
+
 struct AppState {
+    index_path: String,
+    ram_index: Mutex<RamIndex>,
+}
+
+#[derive(Template)]
+#[template(path = "index.htm")]
+struct IndexTemplate<'a> {
+    version: &'a str,
     index: String,
-    ram_index: Mutex<Vec<u8>>,
 }
 
 #[get("/")]
-async fn serve_index(_data: Data<AppState>) -> WebResult<NamedFile> {
-    Ok(NamedFile::open("static/index.htm")?)
+async fn serve_index(data: Data<AppState>) -> impl Responder {
+    let ram_index = data.ram_index.lock().unwrap();
+    IndexTemplate {
+        version: version(),
+        index: ram_index.name.clone(),
+    }
 }
 
 #[allow(non_snake_case)]
@@ -465,10 +484,10 @@ struct QueryRequest {
 async fn serve_query(query_request: Query<QueryRequest>, data: Data<AppState>) -> impl Responder {
     let users = query_request.users.split(',').map(|user| user.to_string()).collect();
     let ram_index = data.ram_index.lock().unwrap();
-    if ram_index.is_empty() {
+    if ram_index.data.is_empty() {
         return HttpResponse::ServiceUnavailable().body("Index not yet available (try again later)\n");
     }
-    let mut cursor = Cursor::new(&*ram_index);
+    let mut cursor = Cursor::new(&*ram_index.data);
     let mut response = vec![];
     match query(&mut cursor, &mut response, &users, query_request.threshold.unwrap_or(0), query_request.order.unwrap_or(Order::none), query_request.cooccurrences.unwrap_or(false), false) {
         Ok(()) => (),
@@ -479,50 +498,75 @@ async fn serve_query(query_request: Query<QueryRequest>, data: Data<AppState>) -
         .body(response)
 }
 
-fn load_index(data: &Data<AppState>) -> bool {
-    println!("Loading index...");
-    let mut ram_index = vec![];
+fn get_index_name(path: &str) -> Option<String> {
+    Some(Path::new(&path)
+        .canonicalize().ok()?
+        .file_stem().unwrap()
+        .to_str().unwrap()
+        .to_string())
+}
+
+fn load_index(data: &Data<AppState>) -> Result<(), &'static str> {
+    let mut ram_index_data = vec![];
     let start = Instant::now();
-    let input = File::open(&data.index);
+    let name = get_index_name(&data.index_path).unwrap_or("unknown".to_string());
+    if name == *data.ram_index.lock().unwrap().name {
+        return Err("Index already up-to-date, no need to reload");
+    }
+    println!("Loading index...");
+    let input = File::open(&data.index_path);
     match input {
         Ok(mut input) => {
-            input.read_to_end(&mut ram_index).unwrap();
+            input.read_to_end(&mut ram_index_data).unwrap();
             let duration = start.elapsed();
             println!("Index loaded in {:?}", duration);
             let mut app_ram_index = data.ram_index.lock().unwrap();
-            *app_ram_index = ram_index;
-            true
+            *app_ram_index = RamIndex {
+                name: name,
+                data: ram_index_data,
+            };
+            Ok(())
         },
         Err(error) => {
-            eprintln!("socksfinder: can't open index: {}: {}", &data.index, &error);
-            false
+            eprintln!("socksfinder: can't open index: {}: {}", &data.index_path, &error);
+            return Err("Unable to open index");
         }
     }
 }
 
 #[get("/reload")]
 async fn serve_reload(data: Data<AppState>) -> impl Responder {
-    if load_index(&data) {
-        HttpResponse::Ok().body(format!("Index reloaded"))
-    } else {
-        HttpResponse::InternalServerError().body(format!("Unable to reload index"))
+    match load_index(&data) {
+        Ok(()) => {
+            HttpResponse::Ok().body(format!("Index reloaded\n"))
+        }
+        Err(error) => {
+            HttpResponse::InternalServerError().body(format!("{}\n", error))
+        }
     }
 }
 
 #[get("/version")]
-async fn serve_version(_data: Data<AppState>) -> impl Responder {
-    HttpResponse::Ok().body(format!("Running socksfinder v{}", version()))
+async fn serve_version(data: Data<AppState>) -> impl Responder {
+    let ram_index = data.ram_index.lock().unwrap();
+    HttpResponse::Ok().body(format!("Running socksfinder v{} ({})\n", version(), &ram_index.name))
 }
 
 #[actix_web::main]
 pub async fn serve(index: String, hostname: String, port: u16) -> std::io::Result<()> {
     let data = Data::new(AppState {
-        index: index,
-        ram_index: Mutex::new(vec![]),
+        index_path: index,
+        ram_index: Mutex::new(RamIndex {
+            name: "no index".to_string(),
+            data: vec![],
+        }),
     });
     let initial_data = data.clone();
     std::thread::spawn(move || {
-        load_index(&initial_data);
+        match load_index(&initial_data) {
+            Ok(()) => (),
+            Err(_) => (), // index not loaded, but this can be done later using /reload
+        }
     });
     println!("Listening on {}:{}...", hostname, port);
     HttpServer::new(move || {

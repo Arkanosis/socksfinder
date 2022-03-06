@@ -107,6 +107,8 @@ $ socksfinder query --cooccurrences frwiki-latest.idx Arkanosis Arktest Arkbot
 
 ### Server mode
 
+#### Basics
+
 socksfinder can be run in server mode, which means it runs a small HTTP server
 to provide an HTML / plain text interface to the same features as when using
 the command line.
@@ -123,14 +125,72 @@ client.
 $ curl 'http://localhost:8697/query?users=Arkanosis,Arktest,Arkbot&coocurrences=true'
 ```
 
+#### Advantages and downsides
+
 Server mode has the following advantages over command line usage:
  - users don't need to download the program;
  - users don't need to build or download an index;
  - users that don't have the time, tools or technical skills can use it;
- - it's even faster: finding millions of edits can take less than one second depending on your CPU.
+ - it's even faster: finding millions of edits can take less than one second
+depending on your CPU.
 
 It has however the following downsides:
- - it requires much more memory, about the same as the size of the index (for the French Wikipedia, it requires around 750 MiB of RAM).
+ - it requires much more memory, about the same as the size of the index (for
+the French Wikipedia, it requires around 800 MiB of RAM).
+
+#### Index update with zero downtime
+
+When running in server mode, it's possible to reload the index without any
+downtime. This is especially useful when you have built a new version of the
+index (for example after a new dump has been made available) and you want to
+switch to it without stopping the service.
+
+To reload the index, send an HTTP GET request to `/reload`.
+
+```console
+$ curl 'http://localhost:8697/reload'
+Index reloaded
+```
+
+Reload only happens if the index has changed.
+
+```console
+$ curl 'http://localhost:8697/reload'
+Index already up-to-date, no need to reload
+```
+
+Note that to ensure there's no downtime, socksfinder needs to keep the old
+index in memory until the new index has been completely loaded and all
+running queries have been answered. Therefore, while reloading the index,
+socksfinder can use as much memory as about twice the size of the index.
+
+The recommended way to perform index updates is to have a symlink to the
+latest index and to start socksfinder in server mode with that symlink. When
+there is a new version of the index available, update the symlink and request
+an index reload. Older indexes can then be deleted when disk space is running
+out.
+
+```console
+$ curl 'http://localhost:8697/version'
+Running socksfinder v0.7.0 (frwiki-20220220)
+$ ls -al
+[…]
+-rw-r--r--  1 arkanosis arkanosis 763M 22 févr. 02:42 frwiki-20220220.idx
+-rw-r--r--  1 arkanosis arkanosis 771M  2 mars  01:41 frwiki-20220301.idx
+lrwxrwxrwx  1 arkanosis arkanosis   19 22 févr. 02:45 frwiki-latest.idx -> frwiki-20220220.idx
+$ ln -sf frwiki-20220301.idx frwiki-latest.idx
+$ ls -al
+[…]
+-rw-r--r--  1 arkanosis arkanosis 763M 22 févr. 02:42 frwiki-20220220.idx
+-rw-r--r--  1 arkanosis arkanosis 771M  2 mars  01:41 frwiki-20220301.idx
+lrwxrwxrwx  1 arkanosis arkanosis   19  2 mars  01:47 frwiki-latest.idx -> frwiki-20220301.idx
+$ curl 'http://localhost:8697/reload'
+Index reloaded
+$ curl 'http://localhost:8697/version'
+Running socksfinder v0.7.0 (frwiki-20220301)
+```
+
+#### Instance on Toolforge
 
 An instance of socksfinder is available [on Toolforge](https://socksfinder.toolforge.org/).
 
