@@ -473,6 +473,12 @@ async fn serve_logo(_data: Data<AppState>) -> WebResult<NamedFile> {
     Ok(NamedFile::open("static/logo.svg")?)
 }
 
+
+#[get("/favicon.ico")]
+async fn serve_favicon(_data: Data<AppState>) -> WebResult<NamedFile> {
+    Ok(NamedFile::open("static/favicon.ico")?)
+}
+
 #[derive(Deserialize)]
 struct QueryRequest {
     cooccurrences: Option<bool>,
@@ -577,6 +583,7 @@ pub async fn serve(index: String, hostname: String, port: u16) -> std::io::Resul
             .service(serve_badge)
             .service(serve_comparison)
             .service(serve_logo)
+            .service(serve_favicon)
             .service(serve_query)
             .service(serve_reload)
             .service(serve_version)
