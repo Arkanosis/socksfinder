@@ -112,9 +112,9 @@ pub fn build(reader: &mut dyn BufRead, writer: &mut dyn Write) -> Result<(), ()>
     let mut current_tag = Tag::Other;
     let mut previous_page_length = 0usize;
     loop {
-        match xml_reader.read_event(&mut buffer) {
+        match xml_reader.read_event_into(&mut buffer) {
             Ok(Event::Start(ref event)) => {
-                match event.name() {
+                match event.name().as_ref() {
                     b"title" => current_tag = Tag::Title,
                     b"ip" => current_tag = Tag::UserName,
                     b"username" => current_tag = Tag::UserName,
@@ -123,12 +123,13 @@ pub fn build(reader: &mut dyn BufRead, writer: &mut dyn Write) -> Result<(), ()>
             },
             Ok(Event::End(_)) => current_tag = Tag::Other,
             Ok(Event::Text(ref event)) => {
+                let escaped_event = event.unescape();
                 match current_tag {
                     Tag::Title => {
-                        match event.unescaped() {
+                        match escaped_event {
                             Ok(ref buffer) => {
                                 current_offset += previous_page_length as u32;
-                                writer.write_all(buffer).unwrap();
+                                writer.write_all(buffer.as_bytes()).unwrap();
                                 writer.write_u8(0xA).unwrap();
                                 previous_page_length = buffer.len() + 1;
                             }
@@ -136,9 +137,9 @@ pub fn build(reader: &mut dyn BufRead, writer: &mut dyn Write) -> Result<(), ()>
                         }
                     }
                     Tag::UserName => {
-                        match event.unescaped() {
+                        match escaped_event {
                             Ok(ref buffer) => {
-                                let page_offsets = user_page_offsets.entry(buffer.to_vec()).or_insert(Vec::new());
+                                let page_offsets = user_page_offsets.entry(buffer.as_bytes().to_vec()).or_insert(Vec::new());
                                 match page_offsets.last() {
                                     None => page_offsets.push(current_offset),
                                     Some(last_offset) => {
@@ -257,7 +258,7 @@ pub fn query(index: &mut dyn Index, writer: &mut dyn Write, users: &Vec<String>,
         match fst.get(&user) {
             None => {
                 error = true;
-                match write!(writer, "Error: User '{}' does not exist or has no edits\n", user) {
+                match writeln!(writer, "Error: User '{}' does not exist or has no edits", user) {
                     Ok(()) => (),
                     Err(_) => (), // ignore output error, but give up
                 }
@@ -327,7 +328,7 @@ pub fn query(index: &mut dyn Index, writer: &mut dyn Write, users: &Vec<String>,
             editor_names.truncate(editor_names.len() - 2);
             match order {
                 Order::none => {
-                    match write!(writer, "{}: {} ({})\n", page_name, editor_count, editor_names) {
+                    match writeln!(writer, "{}: {} ({})", page_name, editor_count, editor_names) {
                         Ok(()) => (),
                         Err(_) => (), // ignore output error, but give up
                     }
@@ -347,7 +348,7 @@ pub fn query(index: &mut dyn Index, writer: &mut dyn Write, users: &Vec<String>,
         if order != Order::none {
             sorted_users.sort_unstable_by(|first_user, second_user| {
                 if order == Order::alphabetical {
-                    first_user.cmp(&second_user)
+                    first_user.cmp(second_user)
                 } else {
                     let total = |user: &String| {
                         let mut sum = 0;
@@ -369,11 +370,11 @@ pub fn query(index: &mut dyn Index, writer: &mut dyn Write, users: &Vec<String>,
         let mut table = Table::new();
         let mut row = vec![Cell::new("")];
         for user in &sorted_users {
-            row.push(Cell::new(&user).style_spec("b"));
+            row.push(Cell::new(user).style_spec("b"));
         }
         table.add_row(Row::new(row));
         for row_user in &sorted_users {
-            let mut row = vec![Cell::new(&row_user).style_spec("b")];
+            let mut row = vec![Cell::new(row_user).style_spec("b")];
             for cell_user in &sorted_users {
                 if row_user == cell_user {
                     row.push(Cell::new(""));
@@ -404,7 +405,7 @@ pub fn query(index: &mut dyn Index, writer: &mut dyn Write, users: &Vec<String>,
                     }
                 });
                 for page in pages {
-                    match write!(writer, "{}: {} ({})\n", page.page_name, page.editor_count, page.editor_names) {
+                    match writeln!(writer, "{}: {} ({})", page.page_name, page.editor_count, page.editor_names) {
                         Ok(()) => (),
                         Err(_) => break, // ignore output error, but give up
                     }
@@ -509,7 +510,7 @@ fn get_index_name(path: &str) -> Option<String> {
 fn load_index(data: &Data<AppState>) -> Result<(), &'static str> {
     let mut ram_index_data = vec![];
     let start = Instant::now();
-    let name = get_index_name(&data.index_path).unwrap_or("unknown".to_string());
+    let name = get_index_name(&data.index_path).unwrap_or_else(|| "unknown".to_string());
     if name == *data.ram_index.lock().unwrap().name {
         return Err("Index already up-to-date, no need to reload");
     }
@@ -529,7 +530,7 @@ fn load_index(data: &Data<AppState>) -> Result<(), &'static str> {
         },
         Err(error) => {
             eprintln!("socksfinder: can't open index: {}: {}", &data.index_path, &error);
-            return Err("Unable to open index");
+            Err("Unable to open index")
         }
     }
 }
@@ -538,7 +539,7 @@ fn load_index(data: &Data<AppState>) -> Result<(), &'static str> {
 async fn serve_reload(data: Data<AppState>) -> impl Responder {
     match load_index(&data) {
         Ok(()) => {
-            HttpResponse::Ok().body(format!("Index reloaded\n"))
+            HttpResponse::Ok().body("Index reloaded\n".to_string())
         }
         Err(error) => {
             HttpResponse::InternalServerError().body(format!("{}\n", error))
