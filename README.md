@@ -253,7 +253,7 @@ Create the following `$HOME/service.template` file:
 
 ```yaml
 backend: kubernetes
-mem: 1200Mi
+mem: 2Gi
 type: golang111
 extra_args:
  - /data/project/$PROJECT/socksfinder
@@ -266,7 +266,7 @@ extra_args:
 Don't forget to replace `$PROJECT` with your Toolforge project name and
 `frwiki-latest.idx` with the name of the symlink to your latest index. You may
 also need to adjust the memory limit to what's needed to fit the entire index
-in memory.
+in memory (twice, if you want index updates with zero downtime).
 
 Then, run the following command:
 

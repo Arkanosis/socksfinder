@@ -1,5 +1,5 @@
 backend: kubernetes
-mem: 1200Mi
+mem: 2Gi
 type: golang111
 extra_args:
  - /data/project/$PROJECT/socksfinder
