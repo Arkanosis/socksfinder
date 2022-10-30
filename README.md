@@ -194,6 +194,52 @@ Running socksfinder v0.7.0 (frwiki-20220301)
 
 An instance of socksfinder is available [on Toolforge](https://socksfinder.toolforge.org/).
 
+## Running on Toolforge
+
+### Uploading socksfinder to Toolforge
+
+Copy the socksfinder binary directly to your tool's home directory:
+
+```console
+$ rsync -pt ./target/release/socksfinder $LOGIN@login.toolforge.org:/data/project/$PROJECT/
+```
+
+Don't forget to replace `$LOGIN` with your Toolforge login and `$PROJECT` with
+your tool name.
+
+### Building new indexes as new dumps are available
+
+To be written…
+
+### Serving the latest index to end-users
+
+#### Webservice template
+
+Create the following `$HOME/service.template` file:
+
+```yaml
+backend: kubernetes
+mem: 1200Mi
+type: golang111
+extra_args:
+ - /data/project/$PROJECT/socksfinder
+ - serve
+ - --hostname=0.0.0.0
+ - --port=8000
+ - /data/project/$PROJECT/data/frwiki-latest.idx
+```
+
+Don't forget to replace `$PROJECT` with your Toolforge project name and
+`frwiki-latest.idx` with the name of the symlink to your latest index. You may
+also need to adjust the memory limit to what's needed to fit the entire index
+in memory.
+
+Then, run the following command:
+
+```console
+$ webservice start
+```
+
 ## Contributing and reporting bugs
 
 Contributions are welcome through [GitHub pull requests](https://github.com/Arkanosis/socksfinder/pulls).
