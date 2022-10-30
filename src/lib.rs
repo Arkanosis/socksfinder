@@ -588,7 +588,7 @@ pub async fn serve(index: String, hostname: String, port: u16) -> std::io::Resul
             .service(serve_reload)
             .service(serve_version)
     })
-        .bind(format!("{}:{}", hostname, port))?
+        .bind((hostname, port))?
         .run()
         .await
 }
