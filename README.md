@@ -229,7 +229,7 @@ Create the following `$HOME/jobs.yaml` file:
       ln -sf frwiki-${dump}.idx ./data/frwiki-latest.idx &&
       curl https://$PROJECT.toolforge.org/reload
   image: tf-bullseye-std
-  schedule: "0 0 0 3,22 * *"
+  schedule: "0 0 3,22 * *"
   emails: all
 ```
 
