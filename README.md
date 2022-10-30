@@ -193,6 +193,7 @@ Running socksfinder v0.7.0 (frwiki-20220301)
 #### Instance on Toolforge
 
 An instance of socksfinder is available [on Toolforge](https://socksfinder.toolforge.org/).
+Its status is visible at [K8s-status](https://k8s-status.toolforge.org/namespaces/tool-socksfinder/).
 
 ## Running on Toolforge
 
@@ -209,11 +210,44 @@ your tool name.
 
 ### Building new indexes as new dumps are available
 
-To be written…
+Create a `data` directory to store the index:
+
+```console
+$ mkdir -p data
+```
+
+Create the following `$HOME/jobs.yaml` file:
+
+```yaml
+---
+- name: update-index
+  mem: 2Gi
+  command: >-
+    dump=$(date '+%Y%m%d' -d 'two days ago') ;
+    gunzip -c /public/dumps/public/frwiki/${dump}/frwiki-${dump}-stub-meta-history.xml.gz |
+      ./socksfinder build ./data/frwiki-${dump}.idx &&
+      ln -sf frwiki-${dump}.idx ./data/frwiki-latest.idx &&
+      curl https://$PROJECT.toolforge.org/reload
+  image: tf-bullseye-std
+  schedule: "0 0 0 3,22 * *"
+  emails: all
+```
+
+Don't forget to replace `$PROJECT` with your Toolforge project name. You may
+also need to adjust the memory limit to what's needed to fit the entire index
+in memory.
+
+Then, run the following command:
+
+```console
+$ toolforge-jobs load jobs.yaml
+```
+
+Index creation jobs will then automatically be started at midnight on the 3rd
+and the 22nd of each month, to build and index from the dumps from the 1st and
+the 20th of that month.
 
 ### Serving the latest index to end-users
-
-#### Webservice template
 
 Create the following `$HOME/service.template` file:
 
@@ -239,6 +273,16 @@ Then, run the following command:
 ```console
 $ webservice start
 ```
+
+### Monitoring
+
+Go to your tool's namespace status panel at:
+
+```
+https://k8s-status.toolforge.org/namespaces/tool-$PROJECT/
+```
+
+Don't forget to replace `$PROJECT` with your tool name.
 
 ## Contributing and reporting bugs
 
