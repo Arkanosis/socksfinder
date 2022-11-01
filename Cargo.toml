@@ -15,7 +15,7 @@ license = "ISC"
 keywords = ["sock", "puppet", "sockpuppet", "wikimedia", "wikipedia"]
 categories = ["command-line-utilities"]
 
-edition = "2018"
+edition = "2021"
 build = "build.rs"
 
 [dependencies]
@@ -29,7 +29,7 @@ fst = "0.4"
 mime = "0.3"
 number_prefix = "0.4"
 prettytable-rs = "0.9"
-quick-xml = "0.25"
+quick-xml = "0.26"
 serde = "1.0"
 serde_derive = "1.0"
 
