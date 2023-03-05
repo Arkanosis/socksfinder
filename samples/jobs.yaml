@@ -2,11 +2,11 @@
 - name: update-index
   mem: 2Gi
   command: >-
-    dump=$(date '+%Y%m%d' -d 'two days ago') ;
+    dump=$(date '+%Y%m%d' -d '2 days ago') ;
     gunzip -c /public/dumps/public/frwiki/${dump}/frwiki-${dump}-stub-meta-history.xml.gz |
       ./socksfinder build ./data/frwiki-${dump}.idx &&
       ln -sf frwiki-${dump}.idx ./data/frwiki-latest.idx &&
       curl https://$PROJECT.toolforge.org/reload
-  image: tf-bullseye-std
+  image: tf-golang111
   schedule: "0 0 3,22 * *"
   emails: all
