@@ -139,7 +139,8 @@ pub fn build(reader: &mut dyn BufRead, writer: &mut dyn Write) -> Result<(), ()>
                     Tag::UserName => {
                         match escaped_event {
                             Ok(ref buffer) => {
-                                let page_offsets = user_page_offsets.entry(buffer.as_bytes().to_vec()).or_insert(Vec::new());
+                                let user = buffer.replace("_", " ");
+                                let page_offsets = user_page_offsets.entry(user.as_bytes().to_vec()).or_insert(Vec::new());
                                 match page_offsets.last() {
                                     None => page_offsets.push(current_offset),
                                     Some(last_offset) => {
@@ -234,7 +235,7 @@ pub fn query(index: &mut dyn Index, writer: &mut dyn Write, users: &Vec<String>,
     let users: &Vec<String> = {
         let mut unique_users = HashSet::with_capacity(users.len());
         for user in users {
-            unique_users.insert(user.trim().to_string().clone());
+            unique_users.insert(user.replace("_", " ").trim().to_string().clone());
         }
         &unique_users.into_iter().collect()
     };
