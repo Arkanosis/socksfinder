@@ -7,6 +7,6 @@
       ./socksfinder build ./data/frwiki-${dump}.idx &&
       ln -sf frwiki-${dump}.idx ./data/frwiki-latest.idx &&
       curl https://$PROJECT.toolforge.org/reload
-  image: tf-golang111
+  image: tf-golang1.11
   schedule: "0 0 3,22 * *"
   emails: all

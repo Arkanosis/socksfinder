@@ -228,7 +228,7 @@ Create the following `$HOME/jobs.yaml` file:
       ./socksfinder build ./data/frwiki-${dump}.idx &&
       ln -sf frwiki-${dump}.idx ./data/frwiki-latest.idx &&
       curl https://$PROJECT.toolforge.org/reload
-  image: tf-golang111
+  image: tf-golang1.11
   schedule: "0 0 3,22 * *"
   emails: all
 ```
@@ -254,7 +254,7 @@ Create the following `$HOME/service.template` file:
 ```yaml
 backend: kubernetes
 mem: 2Gi
-type: golang111
+type: golang1.11
 extra_args:
  - /data/project/$PROJECT/socksfinder
  - serve
