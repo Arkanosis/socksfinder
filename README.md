@@ -223,13 +223,13 @@ Create the following `$HOME/jobs.yaml` file:
 - name: update-index
   mem: 2Gi
   command: >-
-    dump=$(date '+%Y%m%d' -d '2 days ago') ;
+    dump=$(date '+%Y%m%d' -d '4 days ago') ;
     gunzip -c /public/dumps/public/frwiki/${dump}/frwiki-${dump}-stub-meta-history.xml.gz |
       ./socksfinder build ./data/frwiki-${dump}.idx &&
       ln -sf frwiki-${dump}.idx ./data/frwiki-latest.idx &&
       curl https://$PROJECT.toolforge.org/reload
   image: tf-golang1.11
-  schedule: "0 0 3,22 * *"
+  schedule: "0 0 5 * *"
   emails: all
 ```
 
@@ -243,9 +243,8 @@ Then, run the following command:
 $ toolforge-jobs load jobs.yaml
 ```
 
-Index creation jobs will then automatically be started at midnight on the 3rd
-and the 22nd of each month, to build and index from the dumps from the 1st and
-the 20th of that month.
+Index creation jobs will then automatically be started at midnight on the 5th
+of each month, to build and index from the dumps from the 1st of that month.
 
 ### Serving the latest index to end-users
 
@@ -292,5 +291,5 @@ Please report bugs and feature requests on [GitHub issues](https://github.com/Ar
 
 ## License
 
-socksfinder is copyright (C) 2020-2023 Jérémie Roquet <jroquet@arkanosis.net>
+socksfinder is copyright (C) 2020-2026 Jérémie Roquet <jroquet@arkanosis.net>
 and licensed under the ISC license.
